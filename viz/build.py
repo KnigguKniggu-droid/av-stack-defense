@@ -212,17 +212,17 @@ def fpga_gif():
     return _save(FuncAnimation(fig, fr, frames=times), "fpga.gif")
 
 
-PANEL = """
-    <div class="panel">
-      <div class="ph"><span class="dot"></span>{title}</div>
-      <img src="data:image/gif;base64,{img}" alt="{title}"/>
+DETBLOCK = """
+    <section class="detblock">
+      <h2 class="dt"><span class="dot"></span>{title}</h2>
+      <div class="animrow"><img src="data:image/gif;base64,{img}" alt="{title}"/></div>
       <div class="cap">
         <p><span class="lbl">What you're seeing</span>{does}</p>
         <p><span class="lbl">Why it matters</span>{why}</p>
         <p><span class="lbl">What it contributes</span>{contrib}</p>
       </div>
-      <div class="math"><span class="lab">The math, with this run's numbers</span>{math}</div>
-    </div>"""
+      <div class="mathx">{mathx}</div>
+    </section>"""
 
 
 def make_math():
@@ -291,7 +291,155 @@ def make_math():
     return m
 
 
-def build_html(imgs, math):
+def make_explainer():
+    """A plain-language, step-by-step walkthrough of every detector's math."""
+    D = [
+        {"title": "Navigation — detecting GPS spoofing",
+         "problem": "The car must know where it is, but GPS can be faked from outside. "
+                    "The trick is to cross-check every GPS fix against the car's own motion, "
+                    "measured by sensors an attacker cannot reach.",
+         "steps": [
+            ("1. Describe the car's state",
+             r"\mathbf{x}=[\,p_x,\;p_y,\;v,\;\theta\,]^{\top}",
+             "We track four numbers: position east \\(p_x\\), position north \\(p_y\\), "
+             "speed \\(v\\), and heading angle \\(\\theta\\). Together they say where the car "
+             "is, how fast it is moving, and which way it points."),
+            ("2. Predict motion from physics (the IMU)",
+             r"\dot p_x=v\cos\theta,\quad \dot p_y=v\sin\theta,\qquad v_{k+1}=v_k+a\,\Delta t,\quad \theta_{k+1}=\theta_k+\omega\,\Delta t",
+             "This is basic kinematics. Velocity splits into an east part \\(v\\cos\\theta\\) and "
+             "a north part \\(v\\sin\\theta\\). The accelerometer measures acceleration \\(a\\), so "
+             "the new speed is the old speed plus \\(a\\) times the time step \\(\\Delta t\\). The "
+             "gyroscope measures turn rate \\(\\omega\\), so heading updates the same way. This lets "
+             "the car estimate its own position using no GPS at all."),
+            ("3. Track uncertainty (the Kalman filter, and the calculus)",
+             r"P=F\,P\,F^{\top}+Q,\qquad F=\frac{\partial f}{\partial \mathbf{x}}",
+             "\\(P\\) is how unsure the filter is about the state. Predicting forward grows that "
+             "uncertainty by the process noise \\(Q\\). \\(F\\) is the Jacobian, the matrix of "
+             "partial derivatives of the motion model. That derivative is the calculus step: it "
+             "linearizes the physics so the update stays a clean matrix equation. This linearization "
+             "is exactly what the word Extended means in Extended Kalman Filter."),
+            ("4. Compare GPS to the prediction (the innovation)",
+             r"\mathbf{y}=\mathbf{z}-H\mathbf{x}",
+             "\\(\\mathbf{z}\\) is the real GPS reading. \\(H\\mathbf{x}\\) is what GPS should read "
+             "if the physics prediction is correct. Their difference \\(\\mathbf{y}\\) is the "
+             "surprise: how far GPS strays from what the motion predicted. A small surprise means the "
+             "two agree; a large one means something is wrong."),
+            ("5. Normalize the surprise (NIS)",
+             r"S=HPH^{\top}+R,\qquad d=\mathbf{y}^{\top} S^{-1}\mathbf{y}\ \sim\ \chi^{2}_{2}",
+             "Raw distance is not enough, because some surprise is always expected from noise. "
+             "\\(S\\) is the expected size of the surprise. Dividing the surprise by its expected "
+             "size gives a unitless score \\(d\\): how many expected-surprises big this one is. Under "
+             "honest conditions \\(d\\) follows a chi-square law with two degrees of freedom (GPS "
+             "gives two numbers, east and north) and averages about 2."),
+            ("6. Decide",
+             r"\overline{d}_{5} \gt 9.21\ \ (99\%)\quad\text{or}\quad g_k=\max\!\big(0,\,g_{k-1}+(d_k-3)\big) \gt 14",
+             "9.21 is the chi-square value that honest data exceeds only 1% of the time, so passing "
+             "it means the GPS is almost certainly spoofed. The CUSUM term \\(g_k\\) adds up small "
+             "persistent surprises to catch a slow drift that never spikes. On this run the honest "
+             "score sat near 1.8 and the spoof drove it to about 170, roughly 90 times over the "
+             "line, so it was caught at once."),
+         ]},
+        {"title": "Communication — detecting V2X jamming",
+         "problem": "Cars broadcast safety messages over radio. A jammer floods that channel with "
+                    "energy so the car goes deaf. We detect the flood, and identify what kind it is.",
+         "steps": [
+            ("1. Build the radio signal (OFDM)",
+             r"x[n]=\mathrm{IFFT}\{S_m\}+\text{CP},\qquad S_m\in\mathrm{QPSK}",
+             "Real vehicle radios use OFDM. Data symbols \\(S_m\\) are spread across many "
+             "frequencies with an inverse FFT, and a cyclic prefix (CP) is added to survive echoes. "
+             "\\(x[n]\\) is the resulting time-domain waveform."),
+            ("2. Measure how loud the channel is",
+             r"P=\frac{1}{N}\sum_{n=0}^{N-1}\lvert x[n]\rvert^{2}",
+             "Power is the average squared amplitude, which is literally how much energy is in the "
+             "signal. A jammer adds energy, so the power rises."),
+            ("3. Set the alarm line from clean data",
+             r"\tau=P_0+4\,\sigma_0",
+             "From clean frames we learn the normal power \\(P_0\\) and its natural wobble "
+             "\\(\\sigma_0\\). The threshold sits four standard deviations above normal, high enough "
+             "that honest noise almost never trips it. On this run \\(P_0=1.033\\) and "
+             "\\(\\tau=1.151\\). Clean power stayed at 1.033, under the line; jamming spiked it to "
+             "9.30, far over."),
+            ("4. Identify the jammer by its spectrum shape",
+             r"X[k]=\sum_{n=0}^{N-1}x[n]e^{-j2\pi kn/N},\qquad \mathrm{SF}=\frac{\left(\prod_{k}\mathrm{PSD}[k]\right)^{1/N}}{\tfrac{1}{N}\sum_{k}\mathrm{PSD}[k]}",
+             "The FFT \\(X[k]\\) breaks the signal into its frequencies, and \\(\\lvert X[k]\\rvert^2\\) "
+             "is the power at each one (the PSD). Spectral flatness compares the geometric mean to "
+             "the arithmetic mean of that spectrum. A flat, spread-out spectrum means a broadband "
+             "barrage; a single sharp spike means a narrowband tone; a moving band means a sweep. "
+             "This run classified the attack as tone/narrowband."),
+         ]},
+        {"title": "Perception — detecting an adversarial patch",
+         "problem": "A printed sticker on a sign can fool the camera's vision model. These patches "
+                    "are dense, high-frequency noise, so we hunt for the noisiest region of the image.",
+         "steps": [
+            ("1. Measure sharpness at every pixel (image gradient)",
+             r"E(x,y)=\left(\frac{\partial I}{\partial x}\right)^{2}+\left(\frac{\partial I}{\partial y}\right)^{2}=\lVert\nabla I\rVert^{2}",
+             "\\(\\partial I/\\partial x\\) is how fast brightness changes left to right, and "
+             "\\(\\partial I/\\partial y\\) top to bottom. Squaring and adding gives the gradient "
+             "energy: high where the image changes sharply, low where it is smooth. This is the "
+             "gradient from calculus applied to an image. Adversarial patches are built to be dense "
+             "high-frequency noise, so their gradient energy is enormous."),
+            ("2. Compare each region to the whole scene",
+             r"r=\frac{\overline{E}_{\text{win}}}{\operatorname{median}(E)}",
+             "Slide a window across the image. For each window, divide its average energy by the "
+             "median energy of the whole scene. \\(r\\) then says this region is \\(r\\) times "
+             "sharper than a typical spot. A normal textured area is only a few times the median."),
+            ("3. Flag the patch",
+             r"\text{flag if}\quad r\ \ge\ 4",
+             "Above four times the median, a region is suspiciously noisy and likely a patch. On "
+             "this run the top window measured 294 times the median energy, so it was not subtle."),
+         ]},
+        {"title": "In-vehicle network — detecting a CAN flood",
+         "problem": "The car's internal bus carries brake, steer, and engine commands and has no "
+                    "authentication. We catch an attacker by watching the timing of messages.",
+         "steps": [
+            ("1. Learn the normal rhythm",
+             r"T=\frac{1}{N}\sum_i g_i,\qquad \sigma=\sqrt{\tfrac{1}{N}\sum_i (g_i-T)^{2}},\qquad g_i=t_i-t_{i-1}",
+             "Each message type is sent on a fixed clock. We measure the gaps \\(g_i\\) between "
+             "arrivals and average them: \\(T\\) is the normal period and \\(\\sigma\\) its jitter. "
+             "On this run the fastest message repeats every \\(T\\approx 10\\) ms."),
+            ("2. Score each new message",
+             r"z=\frac{g-T}{\sigma},\qquad \text{TIMING if}\ \ g \lt 0.5T",
+             "When a message arrives with gap \\(g\\), the z-score says how many jitters "
+             "off-schedule it is. If it comes more than twice too fast, meaning \\(g\\) is under "
+             "half the normal period, it is an injection."),
+            ("3. Catch floods and strangers",
+             r"\text{RATE\_FLOOD if}\ \ \rho \gt 4\rho_0,\qquad \text{UNKNOWN\_ID if id}\notin\text{baseline}",
+             "If the whole-bus message rate \\(\\rho\\) jumps to four times normal \\(\\rho_0\\), or "
+             "an ID appears that was never in the learned set, it is an attack. On this run normal "
+             "traffic ran near 336 messages per second; the flood used the never-seen ID 0x000 at "
+             "about 2005 per second, roughly six times normal, tripping both rules."),
+         ]},
+        {"title": "Hardware — the same detection in an FPGA",
+         "problem": "Software checks add delay, but a real gateway must flag an attack at line rate. "
+                    "So the same timing logic is built directly into digital hardware.",
+         "steps": [
+            ("1. A hardware clock",
+             r"c_{k+1}=c_k+1,\qquad t=\frac{c}{f_{\text{clk}}},\qquad f_{\text{clk}}=100\,\mathrm{MHz}",
+             "A counter ticks up once every clock cycle. Multiplying the cycle count by the clock "
+             "period converts it to real time. At 100 MHz, one cycle is 10 nanoseconds."),
+            ("2. The timing check, in logic",
+             r"\text{TIMING if}\quad \text{seen}[id]\ \wedge\ \big(c-\text{last\_seen}[id]\big) \lt \text{min\_period}[id]",
+             "For each known ID the chip stores when it was last seen and its minimum allowed "
+             "spacing in cycles. If a frame arrives sooner than allowed, the alert is raised on the "
+             "very next clock, with no software in the loop. On this run the injected 0x0C0 arrived "
+             "22 cycles after the previous one, under its 80-cycle minimum, so the alert fired one "
+             "cycle later."),
+         ]},
+    ]
+    keys = ["nav", "comm", "perc", "can", "fpga"]
+    result = {}
+    for key, det in zip(keys, D):
+        parts = ['<div class="mathlab">The math, step by step</div>']
+        parts.append('<p class="prob"><span class="ppill">The problem</span>' + det["problem"] + '</p>')
+        for name, latex, prose in det["steps"]:
+            parts.append('<div class="step"><div class="sname">' + name + '</div>')
+            parts.append(r'\[' + latex + r'\]')
+            parts.append('<p>' + prose + '</p></div>')
+        result[key] = "".join(parts)
+    return result
+
+
+def build_html(imgs):
     order = [
         ("Navigation &middot; GPS spoofing", imgs["nav"],
          "An Extended Kalman Filter fuses the car's GPS with its inertial sensors to estimate where "
@@ -347,7 +495,8 @@ def build_html(imgs, math):
          "ECE digital-design proof."),
     ]
     keys = ["nav", "comm", "perc", "can", "fpga"]
-    panels = "".join(PANEL.format(title=t, img=g, does=a, why=b, contrib=c, math=math[k])
+    ex = make_explainer()
+    blocks = "".join(DETBLOCK.format(title=t, img=g, does=a, why=b, contrib=c, mathx=ex[k])
                      for k, (t, g, a, b, c) in zip(keys, order))
     return f"""<!doctype html><html><head><meta charset="utf-8">
 <title>AV Stack Defense - Live</title>
@@ -363,26 +512,34 @@ def build_html(imgs, math):
   .stat{{background:#131a19;border:1px solid #243130;border-radius:9px;padding:8px 13px;
     font-family:ui-monospace,Consolas,monospace;font-size:12.5px;}}
   .stat b{{color:{ACCENT};}}
-  .grid{{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:20px;}}
-  @media(max-width:820px){{.grid{{grid-template-columns:1fr;}}}}
-  .panel{{background:#101715;border:1px solid #243130;border-radius:13px;padding:14px;}}
-  .panel:last-child{{grid-column:1/-1;max-width:560px;margin:0 auto;}}
-  .ph{{font-size:14px;font-weight:650;margin-bottom:10px;display:flex;align-items:center;gap:9px;}}
-  .dot{{width:8px;height:8px;border-radius:50%;background:{ACCENT};box-shadow:0 0 8px {ACCENT};}}
-  .panel img{{width:100%;border-radius:8px;display:block;background:{INK};}}
-  .cap{{margin-top:12px;}}
-  .cap p{{color:#aeb9b7;font-size:12.5px;line-height:1.55;margin:0 0 9px;}}
+  .dot{{width:8px;height:8px;border-radius:50%;background:{ACCENT};box-shadow:0 0 8px {ACCENT};
+    display:inline-block;flex:0 0 auto;}}
+  .detblock{{max-width:820px;margin:34px auto 0;border-top:1px solid #243130;padding-top:28px;}}
+  .detblock:first-of-type{{border-top:0;padding-top:8px;}}
+  .dt{{font-size:20px;font-weight:700;margin:0 0 14px;display:flex;align-items:center;gap:10px;
+    letter-spacing:-.01em;}}
+  .animrow{{text-align:center;}}
+  .animrow img{{width:100%;max-width:600px;border-radius:10px;background:{INK};
+    border:1px solid #243130;}}
+  .cap{{margin-top:16px;}}
+  .cap p{{color:#aeb9b7;font-size:13px;line-height:1.55;margin:0 0 9px;}}
   .cap p:last-child{{margin-bottom:0;}}
   .lbl{{display:block;font-family:ui-monospace,Consolas,monospace;font-size:10px;letter-spacing:.09em;
     text-transform:uppercase;color:{ACCENT};margin-bottom:3px;font-weight:600;}}
-  .math{{margin-top:12px;background:{INK};border:1px solid #243130;border-radius:8px;
-    padding:4px 14px 12px;overflow-x:auto;color:#c3ccca;}}
-  .math .lab{{display:block;font-family:ui-monospace,Consolas,monospace;font-size:10px;
-    letter-spacing:.08em;text-transform:uppercase;color:{GPSY};margin:10px 0 4px;}}
-  .math .run{{font-size:12.5px;line-height:1.55;color:#b7c2c0;margin:8px 0 0;}}
-  .math mjx-container{{margin:.3em 0 !important;}}
-  .math mjx-container[display="true"]{{text-align:left !important;}}
-  .foot{{margin-top:30px;color:#63716f;font-size:12px;font-family:ui-monospace,Consolas,monospace;}}
+  .mathx{{margin-top:20px;}}
+  .mathlab{{font-family:ui-monospace,Consolas,monospace;font-size:10.5px;letter-spacing:.09em;
+    text-transform:uppercase;color:{GPSY};margin-bottom:10px;}}
+  .prob{{background:#131a19;border:1px solid #243130;border-radius:9px;padding:12px 14px;
+    font-size:13.5px;line-height:1.55;color:#c3ccca;}}
+  .ppill{{display:inline-block;font-family:ui-monospace,Consolas,monospace;font-size:9.5px;
+    letter-spacing:.09em;text-transform:uppercase;color:{GPSY};margin-right:9px;}}
+  .step{{margin-top:18px;}}
+  .sname{{font-weight:650;font-size:14px;color:{ACCENT};margin-bottom:2px;}}
+  .step p{{font-size:13.5px;line-height:1.65;color:#b7c2c0;margin:4px 0 0;}}
+  .step mjx-container[display="true"]{{text-align:left !important;margin:.45em 0 !important;
+    overflow-x:auto;overflow-y:hidden;max-width:100%;}}
+  .foot{{max-width:820px;margin:40px auto 0;color:#63716f;font-size:12px;
+    font-family:ui-monospace,Consolas,monospace;}}
 </style></head><body><div class="wrap">
   <div class="eyebrow">Cross-layer AV defense &middot; live run (real detectors, simulated inputs)</div>
   <h1>Five detectors, one vehicle, watched in real time</h1>
@@ -394,7 +551,7 @@ def build_html(imgs, math):
     <div class="stat"><b>1.000</b> detection rate</div>
     <div class="stat"><b>FPGA</b> testbench PASS</div>
   </div>
-  <div class="grid">{panels}</div>
+  {blocks}
   <div class="foot">Generated live from av-stack-defense/viz/build.py. Re-run to regenerate.</div>
 </div></body></html>"""
 
@@ -405,10 +562,9 @@ def main():
     print("Rendering animated visuals (this takes ~60-90s)...")
     imgs = {"nav": nav_gif(), "comm": comm_gif(), "perc": perc_gif(),
             "can": can_gif(), "fpga": fpga_gif()}
-    math = make_math()
     out = os.path.join(HERE, "dashboard.html")
     with open(out, "w", encoding="utf-8") as f:
-        f.write(build_html(imgs, math))
+        f.write(build_html(imgs))
     print(f"Wrote {out}")
     webbrowser.open("file:///" + out.replace("\\", "/"))
 
