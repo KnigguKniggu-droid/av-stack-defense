@@ -3,3 +3,7 @@ __pycache__/
 # Icarus Verilog build artifacts if the FPGA layer runs
 *.vvp
 *.vcd
+
+# Generated visualization data (regenerate with viz/build.py)
+viz/data/
+viz/dashboard.html

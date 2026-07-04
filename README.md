@@ -15,6 +15,39 @@ python harness.py
 No dependencies beyond what the individual detectors already use (numpy, Pillow).
 The harness runs each layer in its own subprocess and prints a comparable table.
 
+## Live visualization
+
+Every panel below is rendered from the real output of the real detectors on a
+single run. The inputs are the projects' own simulations; the detection code and
+results are genuine. Generate them yourself with `python viz/build.py` (needs
+`matplotlib`), or double-click `Visualize.bat` on Windows.
+
+**Navigation, GPS spoofing.** An EKF fuses GPS and IMU. When the GPS is spoofed
+with a jump, the estimate diverges from the honest track and the chi-square test
+fires.
+
+![GPS spoofing detection](viz/media/nav.gif)
+
+**Communication, V2X jamming.** Received power stays under the learned threshold on
+honest frames, then a tone jammer pushes it over and the alarm fires.
+
+![V2X jamming detection](viz/media/comm.gif)
+
+**Perception, adversarial patch.** The detector's boxes (red) close in on the real
+patch (dashed yellow), localizing it.
+
+![Adversarial patch detection](viz/media/perc.gif)
+
+**In-vehicle network, CAN flood.** Normal CAN traffic is periodic; the DoS flood
+injects an unknown ID far too fast, breaking the rhythm the timing IDS keys on.
+
+![CAN flood detection](viz/media/can.gif)
+
+**Hardware, FPGA CAN IDS.** The real Verilog waveform from the simulation. When an
+attack frame arrives, the alert line pulses within one clock cycle.
+
+![FPGA CAN IDS waveform](viz/media/fpga.gif)
+
 ## What this is
 
 Five separate projects each defend one layer of a connected autonomous vehicle:
