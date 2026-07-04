@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+# Icarus Verilog build artifacts if the FPGA layer runs
+*.vvp
+*.vcd

@@ -1,0 +1,47 @@
+[
+  {
+    "layer": "Perception (camera / VLM input)",
+    "repo": "adversarial-patch-detector",
+    "attack": "adversarial patch",
+    "clean_false_alarm_rate": 0.0,
+    "attack_detection_rate": 1.0,
+    "primary_metric": "clean='no patch detected', patched flags 20 windows",
+    "ok": true
+  },
+  {
+    "layer": "Navigation (GPS + IMU fusion)",
+    "repo": "ekf-gps-spoof-detector",
+    "attack": "GPS spoof (jump)",
+    "clean_false_alarm_rate": 0.0,
+    "attack_detection_rate": 1.0,
+    "primary_metric": "jump detected=True, post-attack flagged 30/30",
+    "ok": true
+  },
+  {
+    "layer": "Communication (V2X radio)",
+    "repo": "v2x-jamming-detector",
+    "attack": "RF jamming (tone)",
+    "clean_false_alarm_rate": 0.0,
+    "attack_detection_rate": 1.0,
+    "primary_metric": "tone detect 40/40, classified 40/40",
+    "ok": true
+  },
+  {
+    "layer": "In-vehicle network (CAN bus, software)",
+    "repo": "canbus-ids",
+    "attack": "flooding / DoS",
+    "clean_false_alarm_rate": 0.0,
+    "attack_detection_rate": 1.0,
+    "primary_metric": "detect 1.0, FP 0.0",
+    "ok": true
+  },
+  {
+    "layer": "In-vehicle network (CAN bus, FPGA/RTL)",
+    "repo": "canbus-ids-fpga",
+    "attack": "CAN injection + flood (hardware, 1-cycle latency)",
+    "clean_false_alarm_rate": 0.0,
+    "attack_detection_rate": 1.0,
+    "primary_metric": "self-checking testbench PASS at 1-cycle latency",
+    "ok": true
+  }
+]
