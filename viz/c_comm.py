@@ -20,6 +20,9 @@ stream = clean + jammed  # first 40 honest frames, then 40 jammed
 powers = np.array([float(np.mean(np.abs(f) ** 2)) for f in stream])
 threshold = float(det.p0 + det.power_k * det.pstd)
 
+# Real classification stats on one jammed frame, straight from the detector.
+jinfo = det.analyze(jammed[0])
+
 
 def spec(s):
     return 20.0 * np.log10(np.abs(np.fft.fftshift(np.fft.fft(s))) + 1e-9)
@@ -27,5 +30,10 @@ def spec(s):
 
 np.savez(os.path.join(datadir, "comm.npz"),
          powers=powers, threshold=threshold, jam_start=len(clean),
-         clean_spec=spec(clean[0]), jammed_spec=spec(jammed[0]))
+         clean_spec=spec(clean[0]), jammed_spec=spec(jammed[0]),
+         p0=float(det.p0), pstd=float(det.pstd), power_k=float(det.power_k),
+         clean_power=float(np.mean(powers[:len(clean)])),
+         jammed_power=float(np.mean(powers[len(clean):])),
+         jam_flatness=float(jinfo["flatness"]), jam_occbw=float(jinfo["occupied_bw"]),
+         jam_kind=str(jinfo["kind"]))
 print("comm saved")

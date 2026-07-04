@@ -23,13 +23,15 @@ ekf.x[:2] = gps[min(gps)]
 est = np.zeros((len(states), 2))
 gps_k, gps_xy = [], []
 detect_k = -1
+honest_nis, attack_nis = [], []   # raw NIS values, split by phase
 for k in range(len(states)):
     ekf.predict(a_meas[k], w_meas[k])
     if k in gps:
         nis, _ = ekf.update_gps(gps[k])
-        spoof, _ = det.update(nis)
+        spoof, info = det.update(nis)
         gps_k.append(k)
         gps_xy.append(list(gps[k]))
+        (attack_nis if k >= start_k else honest_nis).append(nis)
         if spoof and detect_k < 0 and k >= start_k:
             detect_k = k
     est[k] = ekf.x[:2]
@@ -37,5 +39,8 @@ for k in range(len(states)):
 np.savez(os.path.join(datadir, "nav.npz"),
          true_xy=states[:, :2], est_xy=est,
          gps_k=np.array(gps_k), gps_xy=np.array(gps_xy),
-         start_k=start_k, detect_k=detect_k)
+         start_k=start_k, detect_k=detect_k,
+         honest_nis=float(np.mean(honest_nis)) if honest_nis else 0.0,
+         attack_nis=float(np.max(attack_nis)) if attack_nis else 0.0,
+         nis_threshold=float(det.threshold))
 print("nav saved")

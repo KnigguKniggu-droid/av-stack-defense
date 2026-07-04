@@ -221,10 +221,77 @@ PANEL = """
         <p><span class="lbl">Why it matters</span>{why}</p>
         <p><span class="lbl">What it contributes</span>{contrib}</p>
       </div>
+      <div class="math"><span class="lab">The math, with this run's numbers</span>{math}</div>
     </div>"""
 
 
-def build_html(imgs):
+def make_math():
+    """Real detector math in LaTeX (rendered by MathJax), filled with this run's values.
+    Uses \\lt / \\gt inside math so no raw < or > reaches the HTML parser."""
+    def disp(*eqs):
+        return "".join(r"\[" + e + r"\]" for e in eqs)
+
+    m = {}
+
+    d = np.load(os.path.join(DATA, "nav.npz"))
+    honest, peak = f"{float(d['honest_nis']):.1f}", f"{float(d['attack_nis']):.0f}"
+    m["nav"] = disp(
+        r"\textbf{state}\quad \mathbf{x}=[\,p_x,\;p_y,\;v,\;\theta\,]^\top,\qquad \dot p_x=v\cos\theta,\;\;\dot p_y=v\sin\theta",
+        r"\textbf{IMU}\quad v_{k+1}=v_k+a\,\Delta t,\qquad \theta_{k+1}=\theta_k+\omega\,\Delta t",
+        r"\textbf{predict}\quad \hat{\mathbf{x}}=f(\mathbf{x},\mathbf{u}),\qquad P=F\,P\,F^{\top}+Q,\qquad F=\frac{\partial f}{\partial \mathbf{x}}",
+        r"\textbf{update}\quad \mathbf{y}=\mathbf{z}-H\mathbf{x},\quad S=H P H^{\top}+R,\quad K=P H^{\top} S^{-1}",
+        r"\textbf{NIS}\quad d=\mathbf{y}^{\top} S^{-1}\mathbf{y}\ \sim\ \chi^{2}_{2},\qquad g_k=\max\!\big(0,\;g_{k-1}+(d_k-3)\big)",
+        r"\textbf{alarm}\quad \overline{d}_{5}\gt 9.21\ \ (\chi^{2}_{2},\,99\%)\quad\text{or}\quad g_k\gt 14",
+    ) + ("<p class='run'>This run: honest \\(\\overline d\\approx " + honest +
+         "\\); under spoof \\(d\\) peaks \\(\\approx " + peak + "\\gg 9.21\\) &rarr; fired.</p>")
+
+    d = np.load(os.path.join(DATA, "comm.npz"))
+    p0, sig, tau = f"{float(d['p0']):.3f}", f"{float(d['pstd']):.3f}", f"{float(d['threshold']):.3f}"
+    cp, jp, kind = f"{float(d['clean_power']):.3f}", f"{float(d['jammed_power']):.2f}", str(d['jam_kind'])
+    m["comm"] = disp(
+        r"\textbf{OFDM}\quad x[n]=\mathrm{IFFT}\{S_m\}+\text{CP},\qquad S_m\in\mathrm{QPSK}",
+        r"\textbf{power}\quad P=\frac{1}{N}\sum_{n=0}^{N-1}\lvert x[n]\rvert^{2},\qquad \tau=P_0+4\,\sigma_0",
+        r"\textbf{spectrum}\quad X[k]=\sum_{n=0}^{N-1}x[n]\,e^{-j2\pi kn/N},\qquad \mathrm{PSD}[k]=\lvert X[k]\rvert^{2}",
+        r"\textbf{flatness}\quad \mathrm{SF}=\frac{\left(\prod_{k}\mathrm{PSD}[k]\right)^{1/N}}{\tfrac{1}{N}\sum_{k}\mathrm{PSD}[k]},\qquad \text{alarm if } P\gt\tau",
+    ) + ("<p class='run'>This run: \\(P_0=" + p0 + ",\\ \\sigma_0=" + sig + ",\\ \\tau=" + tau +
+         "\\). Clean \\(P=" + cp + "\\lt\\tau\\); jammed \\(P=" + jp +
+         "\\gt\\tau\\) &rarr; alarm, classified &ldquo;" + kind + "&rdquo;.</p>")
+
+    d = np.load(os.path.join(DATA, "perc.npz"))
+    med, ratio, score = f"{float(d['median_energy']):.3f}", f"{float(d['top_ratio']):.0f}", f"{float(d['top_score']):.0f}"
+    sat = f"{float(d['top_sat']):.2f}"
+    m["perc"] = disp(
+        r"\textbf{gradient energy}\quad E(x,y)=\left(\frac{\partial I}{\partial x}\right)^{2}+\left(\frac{\partial I}{\partial y}\right)^{2}=\lVert\nabla I\rVert^{2}",
+        r"\textbf{window}\quad r=\frac{\overline{E}_{\text{win}}}{\operatorname{median}(E)},\qquad \text{score}=r\,(1+0.5\,S)",
+        r"\textbf{flag}\quad r\ \ge\ 4",
+    ) + ("<p class='run'>This run: \\(\\operatorname{median}(E)=" + med + "\\); the top window has \\(r=" +
+         ratio + "\\times\\) the median \\((\\ge 4\\Rightarrow\\text{flagged})\\), saturation \\(S=" +
+         sat + "\\), score \\(=" + score + "\\).</p>")
+
+    d = np.load(os.path.join(DATA, "can.npz"))
+    T, bus, fr = f"{float(d['learned_period_ms']):.1f}", f"{float(d['normal_bus_rate']):.0f}", f"{float(d['flood_rate']):.0f}"
+    fid = f"0x{int(d['flood_id']):03X}"
+    m["can"] = disp(
+        r"\textbf{learn}\quad T=\frac{1}{N}\sum_{i} g_i,\qquad \sigma=\sqrt{\tfrac{1}{N}\sum_i (g_i-T)^2},\qquad g_i=t_i-t_{i-1}",
+        r"\textbf{z-score}\quad z=\frac{g-T}{\sigma}",
+        r"\textbf{rules}\quad \text{TIMING}:g\lt 0.5T,\quad \text{SILENCE}:g\gt 6T,\quad \text{RATE\_FLOOD}:\ \rho\gt 4\rho_0",
+    ) + ("<p class='run'>This run: fastest \\(T\\approx " + T + "\\,\\text{ms}\\), normal \\(\\rho_0\\approx " +
+         bus + "\\,\\text{msg/s}\\). Flood \\(" + fid + "\\) is unknown at \\(\\rho\\approx " + fr +
+         "\\approx 6\\rho_0\\) &rarr; UNKNOWN_ID + RATE_FLOOD.</p>")
+
+    d = np.load(os.path.join(DATA, "fpga.npz"))
+    gap, mp = int(d['inject_gap_cycles']), int(d['min_period_cycles'])
+    m["fpga"] = disp(
+        r"\textbf{cycle counter}\quad c_{k+1}=c_k+1,\qquad t=\frac{c}{f_{\text{clk}}},\quad f_{\text{clk}}=100\,\mathrm{MHz}",
+        r"\textbf{TIMING}\quad \text{seen}[id]\ \wedge\ \big(c-\text{last\_seen}[id]\big)\lt \text{min\_period}[id]",
+        r"\text{min\_period (cycles)}=\{\text{0x0C0}{:}80,\ \text{0x0D0}{:}80,\ \text{0x110}{:}160,\ \text{0x320}{:}800\}",
+    ) + ("<p class='run'>This run: injected \\(\\text{0x0C0}\\) arrives \\(\\approx " + str(gap) +
+         "\\) cycles apart \\(\\lt " + str(mp) + "\\) &rarr; alert in one clock \\((\\approx 10\\,\\text{ns})\\).</p>")
+
+    return m
+
+
+def build_html(imgs, math):
     order = [
         ("Navigation &middot; GPS spoofing", imgs["nav"],
          "An Extended Kalman Filter fuses the car's GPS with its inertial sensors to estimate where "
@@ -279,10 +346,12 @@ def build_html(imgs):
          "the work from a Python demo to something that could sit on a physical FPGA gateway. Core "
          "ECE digital-design proof."),
     ]
-    panels = "".join(PANEL.format(title=t, img=g, does=a, why=b, contrib=c)
-                     for t, g, a, b, c in order)
+    keys = ["nav", "comm", "perc", "can", "fpga"]
+    panels = "".join(PANEL.format(title=t, img=g, does=a, why=b, contrib=c, math=math[k])
+                     for k, (t, g, a, b, c) in zip(keys, order))
     return f"""<!doctype html><html><head><meta charset="utf-8">
 <title>AV Stack Defense - Live</title>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <style>
   body{{margin:0;background:{INK};color:{FG};font-family:'Segoe UI',system-ui,sans-serif;}}
   .wrap{{max-width:1120px;margin:0 auto;padding:34px 22px 80px;}}
@@ -306,6 +375,13 @@ def build_html(imgs):
   .cap p:last-child{{margin-bottom:0;}}
   .lbl{{display:block;font-family:ui-monospace,Consolas,monospace;font-size:10px;letter-spacing:.09em;
     text-transform:uppercase;color:{ACCENT};margin-bottom:3px;font-weight:600;}}
+  .math{{margin-top:12px;background:{INK};border:1px solid #243130;border-radius:8px;
+    padding:4px 14px 12px;overflow-x:auto;color:#c3ccca;}}
+  .math .lab{{display:block;font-family:ui-monospace,Consolas,monospace;font-size:10px;
+    letter-spacing:.08em;text-transform:uppercase;color:{GPSY};margin:10px 0 4px;}}
+  .math .run{{font-size:12.5px;line-height:1.55;color:#b7c2c0;margin:8px 0 0;}}
+  .math mjx-container{{margin:.3em 0 !important;}}
+  .math mjx-container[display="true"]{{text-align:left !important;}}
   .foot{{margin-top:30px;color:#63716f;font-size:12px;font-family:ui-monospace,Consolas,monospace;}}
 </style></head><body><div class="wrap">
   <div class="eyebrow">Cross-layer AV defense &middot; live run (real detectors, simulated inputs)</div>
@@ -329,9 +405,10 @@ def main():
     print("Rendering animated visuals (this takes ~60-90s)...")
     imgs = {"nav": nav_gif(), "comm": comm_gif(), "perc": perc_gif(),
             "can": can_gif(), "fpga": fpga_gif()}
+    math = make_math()
     out = os.path.join(HERE, "dashboard.html")
     with open(out, "w", encoding="utf-8") as f:
-        f.write(build_html(imgs))
+        f.write(build_html(imgs, math))
     print(f"Wrote {out}")
     webbrowser.open("file:///" + out.replace("\\", "/"))
 

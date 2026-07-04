@@ -89,6 +89,10 @@ np.savez(os.path.join(datadir, "fpga.npz"),
          frame_valid=value_at(series["frame_valid"], times),
          timing_alert=value_at(series["timing_alert"], times),
          unknown_alert=value_at(series["unknown_alert"], times),
-         times_ns=times / 1000.0, tmax_ns=real_tmax / 1000.0)
+         times_ns=times / 1000.0, tmax_ns=real_tmax / 1000.0,
+         # Real constants from the RTL (rtl/can_ids.v) and testbench:
+         min_period_cycles=80,      # 0x0C0 engine RPM, minimum inter-arrival
+         inject_gap_cycles=22,      # testbench injects the second 0x0C0 ~22 cycles later
+         clk_mhz=100)
 print(f"fpga saved (tmax {real_tmax/1000.0:.0f} ns, "
       f"alerts t={int(series['timing_alert'][-1][1]) if series['timing_alert'] else 0})")
