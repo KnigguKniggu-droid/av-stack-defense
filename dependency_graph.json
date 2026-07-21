@@ -1,0 +1,103 @@
+{
+  "nodes": [
+    {
+      "id": "adversarial-patch-detector",
+      "name": "Perception"
+    },
+    {
+      "id": "ekf-gps-spoof-detector",
+      "name": "Navigation"
+    },
+    {
+      "id": "v2x-jamming-detector",
+      "name": "Communication"
+    },
+    {
+      "id": "canbus-ids",
+      "name": "CAN (SW)"
+    },
+    {
+      "id": "canbus-ids-fpga",
+      "name": "CAN (FPGA)"
+    }
+  ],
+  "edges": [
+    {
+      "source": "adversarial-patch-detector",
+      "target": "ekf-gps-spoof-detector",
+      "weight": 0.08,
+      "source_name": "Perception",
+      "target_name": "Navigation"
+    },
+    {
+      "source": "adversarial-patch-detector",
+      "target": "canbus-ids",
+      "weight": 0.05,
+      "source_name": "Perception",
+      "target_name": "CAN (SW)"
+    },
+    {
+      "source": "adversarial-patch-detector",
+      "target": "canbus-ids-fpga",
+      "weight": 0.03,
+      "source_name": "Perception",
+      "target_name": "CAN (FPGA)"
+    },
+    {
+      "source": "ekf-gps-spoof-detector",
+      "target": "adversarial-patch-detector",
+      "weight": 0.05,
+      "source_name": "Navigation",
+      "target_name": "Perception"
+    },
+    {
+      "source": "ekf-gps-spoof-detector",
+      "target": "canbus-ids",
+      "weight": 0.12,
+      "source_name": "Navigation",
+      "target_name": "CAN (SW)"
+    },
+    {
+      "source": "ekf-gps-spoof-detector",
+      "target": "canbus-ids-fpga",
+      "weight": 0.1,
+      "source_name": "Navigation",
+      "target_name": "CAN (FPGA)"
+    },
+    {
+      "source": "v2x-jamming-detector",
+      "target": "ekf-gps-spoof-detector",
+      "weight": 0.1,
+      "source_name": "Communication",
+      "target_name": "Navigation"
+    },
+    {
+      "source": "v2x-jamming-detector",
+      "target": "canbus-ids",
+      "weight": 0.08,
+      "source_name": "Communication",
+      "target_name": "CAN (SW)"
+    },
+    {
+      "source": "v2x-jamming-detector",
+      "target": "canbus-ids-fpga",
+      "weight": 0.06,
+      "source_name": "Communication",
+      "target_name": "CAN (FPGA)"
+    },
+    {
+      "source": "canbus-ids",
+      "target": "canbus-ids-fpga",
+      "weight": 0.15,
+      "source_name": "CAN (SW)",
+      "target_name": "CAN (FPGA)"
+    },
+    {
+      "source": "canbus-ids-fpga",
+      "target": "canbus-ids",
+      "weight": 0.05,
+      "source_name": "CAN (FPGA)",
+      "target_name": "CAN (SW)"
+    }
+  ]
+}

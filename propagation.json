@@ -1,0 +1,80 @@
+{
+  "attack": {
+    "raw_phis": {
+      "Perception": 0.998,
+      "Navigation": 0.998,
+      "Communication": 0.998,
+      "CAN (SW)": 0.758,
+      "CAN (FPGA)": 0.998
+    },
+    "adjusted_phis": {
+      "adversarial-patch-detector": 1.0,
+      "ekf-gps-spoof-detector": 1.0,
+      "v2x-jamming-detector": 0.998,
+      "canbus-ids": 1.0,
+      "canbus-ids-fpga": 1.0
+    },
+    "deltas": {
+      "Perception": 0.002,
+      "Navigation": 0.002,
+      "Communication": 0.0,
+      "CAN (SW)": 0.242,
+      "CAN (FPGA)": 0.002
+    },
+    "t_joint_raw": 0.938,
+    "t_joint_propagated": 1.0,
+    "delta": 0.0615
+  },
+  "coordinated": {
+    "raw_phis": {
+      "Perception": 0.1,
+      "Navigation": 0.414,
+      "Communication": 0.355,
+      "CAN (SW)": 0.1,
+      "CAN (FPGA)": 0.1
+    },
+    "adjusted_phis": {
+      "adversarial-patch-detector": 0.137,
+      "ekf-gps-spoof-detector": 0.489,
+      "v2x-jamming-detector": 0.355,
+      "canbus-ids": 0.257,
+      "canbus-ids-fpga": 0.25
+    },
+    "deltas": {
+      "Perception": 0.0368,
+      "Navigation": 0.0751,
+      "Communication": 0.0,
+      "CAN (SW)": 0.1572,
+      "CAN (FPGA)": 0.1503
+    },
+    "t_joint_raw": 0.242,
+    "t_joint_propagated": 0.338,
+    "delta": 0.0959
+  },
+  "clean": {
+    "raw_phis": {
+      "Perception": 0.1,
+      "Navigation": 0.1,
+      "Communication": 0.1,
+      "CAN (SW)": 0.1,
+      "CAN (FPGA)": 0.1
+    },
+    "adjusted_phis": {
+      "adversarial-patch-detector": 0.109,
+      "ekf-gps-spoof-detector": 0.131,
+      "v2x-jamming-detector": 0.1,
+      "canbus-ids": 0.154,
+      "canbus-ids-fpga": 0.162
+    },
+    "deltas": {
+      "Perception": 0.0092,
+      "Navigation": 0.0309,
+      "Communication": 0.0,
+      "CAN (SW)": 0.054,
+      "CAN (FPGA)": 0.0625
+    },
+    "t_joint_raw": 0.1,
+    "t_joint_propagated": 0.137,
+    "delta": 0.0368
+  }
+}

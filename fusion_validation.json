@@ -1,0 +1,63 @@
+{
+  "fused_false_alarm_rate": 0.0,
+  "trials": 8000,
+  "t_joint_median": 0.0997,
+  "t_joint_p95": 0.1003,
+  "t_joint_max": 0.1003,
+  "calibration_split_per_layer": 6,
+  "heldout_split_per_layer": 6,
+  "method": "50/50 clean-peak split; calibrate on split A, Monte-Carlo fused alarm on split B",
+  "per_layer": [
+    {
+      "layer": "Perception (camera / VLM input)",
+      "repo": "adversarial-patch-detector",
+      "a": 0.0415,
+      "clean_phi_median": 0.101,
+      "clean_phi_p95": 0.327,
+      "clean_phi_max": 0.988,
+      "coordination_eligible": false
+    },
+    {
+      "layer": "Navigation (GPS + IMU fusion)",
+      "repo": "ekf-gps-spoof-detector",
+      "a": 0.6142,
+      "clean_phi_median": 0.1,
+      "clean_phi_p95": 0.1,
+      "clean_phi_max": 0.1,
+      "coordination_eligible": true
+    },
+    {
+      "layer": "Communication (V2X radio)",
+      "repo": "v2x-jamming-detector",
+      "a": 0.0216,
+      "clean_phi_median": 0.1,
+      "clean_phi_p95": 0.1,
+      "clean_phi_max": 0.1,
+      "coordination_eligible": true
+    },
+    {
+      "layer": "In-vehicle network (CAN bus, software)",
+      "repo": "canbus-ids",
+      "a": 0.101,
+      "clean_phi_median": 0.1,
+      "clean_phi_p95": 0.101,
+      "clean_phi_max": 0.102,
+      "coordination_eligible": true
+    },
+    {
+      "layer": "In-vehicle network (CAN bus, FPGA/RTL)",
+      "repo": "canbus-ids-fpga",
+      "a": 0.0635,
+      "clean_phi_median": 0.1,
+      "clean_phi_p95": 0.1,
+      "clean_phi_max": 0.1,
+      "coordination_eligible": true
+    }
+  ],
+  "coordination_eligible_layers": [
+    "canbus-ids",
+    "canbus-ids-fpga",
+    "ekf-gps-spoof-detector",
+    "v2x-jamming-detector"
+  ]
+}

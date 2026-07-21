@@ -1,0 +1,113 @@
+{
+  "registers": {
+    "GPS_ENABLE": {
+      "address": "0x00",
+      "value": 0,
+      "access": "RW",
+      "description": "GPS receiver enable (1=on, 0=isolated)"
+    },
+    "V2X_GAIN": {
+      "address": "0x04",
+      "value": 0,
+      "access": "RW",
+      "description": "V2X radio gain (0=max, 255=silenced)"
+    },
+    "SAFE_STOP_CMD": {
+      "address": "0x08",
+      "value": 1,
+      "access": "RW",
+      "description": "Safe-stop command (1=pull over, 0=clear)"
+    },
+    "CAN_MIN_PERIOD_0": {
+      "address": "0x0C",
+      "value": 80,
+      "access": "RW",
+      "description": "Min period CAN ID 0x0C0 (cycles)"
+    },
+    "CAN_MIN_PERIOD_1": {
+      "address": "0x10",
+      "value": 80,
+      "access": "RW",
+      "description": "Min period CAN ID 0x0D0 (cycles)"
+    },
+    "CAN_MIN_PERIOD_2": {
+      "address": "0x14",
+      "value": 160,
+      "access": "RW",
+      "description": "Min period CAN ID 0x110 (cycles)"
+    },
+    "CAN_MIN_PERIOD_3": {
+      "address": "0x18",
+      "value": 800,
+      "access": "RW",
+      "description": "Min period CAN ID 0x320 (cycles)"
+    },
+    "CAN_RATE_FACTOR": {
+      "address": "0x1C",
+      "value": 320,
+      "access": "RW",
+      "description": "Bus rate factor (8.8 fixed, 1.25x=320)"
+    },
+    "PERCEPTION_MASK": {
+      "address": "0x20",
+      "value": 0,
+      "access": "RW",
+      "description": "Perception mask (1=filter, 0=normal)"
+    },
+    "MITIGATION_STATE": {
+      "address": "0x24",
+      "value": 6,
+      "access": "R",
+      "description": "Current mitigation state (enum)"
+    },
+    "THREAT_SCORE": {
+      "address": "0x28",
+      "value": 256,
+      "access": "R",
+      "description": "Current T_joint (8.8 fixed point)"
+    },
+    "HW_ALERT_STATUS": {
+      "address": "0x2C",
+      "value": 0,
+      "access": "R",
+      "description": "HW alert bitmap (bit0=timing, bit1=unknown)"
+    },
+    "VERSION": {
+      "address": "0x30",
+      "value": 258,
+      "access": "R",
+      "description": "Design version (1.2)"
+    }
+  },
+  "can_periods": {
+    "0x0C0": 80,
+    "0x0D0": 80,
+    "0x110": 160,
+    "0x320": 800
+  },
+  "gps_enabled": false,
+  "v2x_gain": 0,
+  "safe_stop": true,
+  "rate_factor": 1.25,
+  "write_count": 3,
+  "recent_writes": [
+    {
+      "address": "0x00",
+      "name": "GPS_ENABLE",
+      "old": 1,
+      "new": 0
+    },
+    {
+      "address": "0x04",
+      "name": "V2X_GAIN",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "address": "0x08",
+      "name": "SAFE_STOP_CMD",
+      "old": 0,
+      "new": 1
+    }
+  ]
+}

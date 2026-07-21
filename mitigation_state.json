@@ -1,0 +1,66 @@
+{
+  "state": "FULL_FALLBACK",
+  "state_label": "Full Fallback (Emergency Stop)",
+  "actions": [
+    {
+      "target": "vehicle",
+      "action": "INITIATE_SAFE_PULL_OVER",
+      "reason": "T_joint=1.000 >= 0.45 or 4 hard trips"
+    },
+    {
+      "target": "can_bus",
+      "action": "EMERGENCY_HW_OVERRIDE",
+      "reason": "Trigger hardware-level safe-stop state on CAN gateway"
+    },
+    {
+      "target": "ekf",
+      "action": "SWITCH_TO_IMU_ONLY",
+      "reason": "Isolate GPS completely, dead-reckon from IMU"
+    },
+    {
+      "target": "v2x",
+      "action": "REDUCE_GAIN_TO_ZERO",
+      "reason": "Silence V2X radio to prevent poisoned inputs"
+    },
+    {
+      "target": "perception",
+      "action": "MASK_LOW_CONFIDENCE",
+      "reason": "Ignore low-confidence vision detections"
+    }
+  ],
+  "isolated_layers": [
+    "adversarial-patch-detector",
+    "ekf-gps-spoof-detector",
+    "v2x-jamming-detector",
+    "canbus-ids",
+    "canbus-ids-fpga"
+  ],
+  "degraded_sensors": [
+    "gps",
+    "v2x",
+    "camera",
+    "can_bus"
+  ],
+  "safe_stop": true,
+  "register_overrides": {
+    "GPS_ENABLE": 0,
+    "V2X_GAIN": 0,
+    "SAFE_STOP_CMD": 1,
+    "CAN_MIN_PERIOD_OVERRIDE": 1
+  },
+  "trigger": {
+    "t_joint": 1.0,
+    "level": "CRITICAL",
+    "hard_trips": [
+      "Navigation (GPS + IMU fusion)",
+      "Communication (V2X radio)",
+      "In-vehicle network (CAN bus, software)",
+      "In-vehicle network (CAN bus, FPGA/RTL)"
+    ],
+    "nav_phi": 0.998,
+    "comm_phi": 0.998,
+    "perc_phi": 0.998,
+    "can_sw_phi": 0.758,
+    "can_hw_phi": 0.998
+  }
+}

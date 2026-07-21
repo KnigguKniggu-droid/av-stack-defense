@@ -11,6 +11,7 @@ faked). Five animated panels:
   * FPGA         : the real Verilog waveform (frame_valid + alert lines), swept
 """
 import base64
+import json
 import io
 import os
 import subprocess
@@ -212,17 +213,312 @@ def fpga_gif():
     return _save(FuncAnimation(fig, fr, frames=times), "fpga.gif")
 
 
-DETBLOCK = """
-    <section class="detblock">
-      <h2 class="dt"><span class="dot"></span>{title}</h2>
-      <div class="animrow"><img src="data:image/gif;base64,{img}" alt="{title}"/></div>
-      <div class="cap">
-        <p><span class="lbl">What you're seeing</span>{does}</p>
-        <p><span class="lbl">Why it matters</span>{why}</p>
-        <p><span class="lbl">What it contributes</span>{contrib}</p>
+HERO_BLOCK = """
+    <section class="section" id="nav">
+      <div class="section-header">
+        <h2 class="section-title">{title}</h2>
+        <p class="section-description">{thesis}</p>
       </div>
-      <div class="mathx">{mathx}</div>
+      <figure class="fig">
+        <img src="data:image/gif;base64,{img}" alt="{alt}"/>
+        <figcaption>{figcap}</figcaption>
+      </figure>
+      <div class="facets-grid">
+        <div class="facet-block">
+          <span class="facet-label">What you're seeing</span>
+          <p>{does}</p>
+        </div>
+        <div class="facet-block">
+          <span class="facet-label">Why it matters</span>
+          <p>{why}</p>
+        </div>
+        <div class="facet-block">
+          <span class="facet-label">What it contributes</span>
+          <p>{contrib}</p>
+        </div>
+      </div>
+      {math}
     </section>"""
+
+
+DET_BLOCK = """
+    <section class="section" id="{id}">
+      <div class="section-header">
+        <h2 class="section-title">{title}</h2>
+      </div>
+      <figure class="fig">
+        <img src="data:image/gif;base64,{img}" alt="{alt}"/>
+        <figcaption>{figcap}</figcaption>
+      </figure>
+      <div class="facets-grid">
+        <div class="facet-block">
+          <span class="facet-label">What you're seeing</span>
+          <p>{does}</p>
+        </div>
+        <div class="facet-block">
+          <span class="facet-label">Why it matters</span>
+          <p>{why}</p>
+        </div>
+        <div class="facet-block">
+          <span class="facet-label">What it contributes</span>
+          <p>{contrib}</p>
+        </div>
+      </div>
+      {math}
+    </section>"""
+
+
+MATH_DETAILS = """
+      <details class="math-details">
+        <summary class="math-summary">
+          <span>The math, worked step by step</span>
+          <span class="math-chevron">&#9662;</span>
+        </summary>
+        <div class="math-content"><div class="mathx">{body}</div></div>
+      </details>"""
+
+
+STYLE = """
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap');
+
+  :root{
+    --bg:#030712; --surface:#090d16; --surface-soft:#0e1320;
+    --line:#1f293d; --line-soft:#2b3a54;
+    --ink:#f8fafc; --ink-2:#cbd5e1; --ink-3:#94a3b8; --muted:#64748b; --faint:#475569;
+    --teal:#06b6d4; --danger:#ef4444; --gpsy:#fbbf24; --blue:#6366f1;
+    --sans:'Inter',system-ui,-apple-system,sans-serif;
+    --font-display:'Outfit',system-ui,-apple-system,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',monospace;
+    --e-out:cubic-bezier(.22,1,.36,1);
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0;font-family:var(--sans);font-size:15px;line-height:1.6;
+    letter-spacing:-0.005em;color:var(--ink);
+    background:
+      radial-gradient(1200px 520px at 50% -8%, #0f1e36 0%, rgba(15,30,54,0) 65%),
+      var(--bg);
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  img{max-width:100%;display:block;}
+  a{color:var(--teal);text-underline-offset:3px;}
+  ::selection{background:rgba(6,182,212,.28);color:#fff;}
+  :focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:5px;}
+
+  .wrap{max-width:1000px;margin:0 auto;
+    padding:clamp(30px,5vw,64px) clamp(18px,4vw,28px) 120px;}
+
+  /* ---- masthead ---- */
+  .masthead{max-width:860px;margin-inline:auto;margin-bottom:40px;}
+  .status{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);
+    font-size:11px;letter-spacing:.01em;color:var(--muted);margin:0 0 16px;}
+  .live{width:8px;height:8px;border-radius:50%;background:var(--teal);flex:0 0 auto;
+    box-shadow:0 0 0 0 rgba(6, 182, 212, .6);animation:live 2.6s var(--e-out) infinite;}
+  @keyframes live{
+    0%{box-shadow:0 0 0 0 rgba(6, 182, 212, .55);}
+    70%{box-shadow:0 0 0 7px rgba(6, 182, 212, 0);}
+    100%{box-shadow:0 0 0 0 rgba(6, 182, 212, 0);}}
+
+  h1{font-family:var(--font-display);font-weight:800;letter-spacing:-0.03em;
+    font-size:clamp(2rem,1.4rem+2.5vw,3rem);line-height:1.06;margin:0 0 16px;
+    color:#fff;text-wrap:balance;}
+  .lede{font-size:clamp(0.95rem,.9rem+0.2vw,1.08rem);color:var(--ink-2);
+    max-width:68ch;margin:0 0 24px;text-wrap:pretty;}
+
+  .readout{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 24px;}
+  .chip{font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;
+    color:var(--ink-2);background:var(--surface-soft);border:1px solid var(--line);
+    border-radius:6px;padding:6px 12px;transition:border-color .25s var(--e-out);}
+  .chip:hover{border-color:rgba(6, 182, 212, .35);}
+  .chip b{color:var(--teal);font-weight:600;}
+
+  .stack-note{font-size:.92rem;color:var(--muted);max-width:76ch;margin:0;
+    padding-top:20px;border-top:1px solid var(--line);line-height:1.55;}
+  .stack-note b{color:var(--ink-2);font-weight:600;}
+
+  /* ---- section layout wide 1-column ---- */
+  .section{max-width:860px;margin-inline:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:32px;margin-top:32px;box-shadow:0 12px 40px rgba(0,0,0,0.5);}
+  .section-header{margin-bottom:24px;border-bottom:1px solid var(--line);padding-bottom:16px;}
+  .section-title{font-family:var(--font-display);font-size:22px;font-weight:700;margin:0;letter-spacing:-0.015em;color:#ffffff;}
+  .section-description{font-size:13.5px;color:var(--ink-2);margin:6px 0 0;line-height:1.5;}
+
+  /* ---- figures (large) ---- */
+  .fig{margin:0 0 24px;}
+  .fig img{width:100%;border-radius:8px;background:var(--bg);
+    border:1px solid var(--line);box-shadow:0 8px 30px rgba(0,0,0,.4);
+    transition:box-shadow .3s var(--e-out);}
+  .fig img:hover{box-shadow:0 12px 40px rgba(0,0,0,.6);}
+  figcaption{font-family:var(--mono);font-size:11px;color:var(--muted);
+    margin-top:10px;letter-spacing:-.01em;}
+
+  /* ---- facets horizontal grid ---- */
+  .facets-grid{display:grid;grid-template-columns:1fr;gap:20px;margin-bottom:24px;border-top:1px solid var(--line);padding-top:20px;}
+  @media (min-width:680px){
+    .facets-grid{grid-template-columns:repeat(3,1fr);gap:24px;}
+  }
+  .facet-block{display:flex;flex-direction:column;}
+  .facet-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--teal);font-weight:600;margin-bottom:6px;}
+  .facet-block p{margin:0;font-size:13px;line-height:1.55;color:var(--ink-2);}
+
+  /* ---- math disclosure ---- */
+  .math-details{margin-top:4px;}
+  .math-summary{display:flex;justify-content:space-between;align-items:center;
+    cursor:pointer;list-style:none;font-family:var(--mono);font-size:11px;
+    letter-spacing:.04em;text-transform:uppercase;color:var(--gpsy);font-weight:600;
+    padding:12px 16px;background:var(--surface-soft);border:1px solid var(--line);
+    border-radius:6px;transition:all 0.2s ease;}
+  .math-summary::-webkit-details-marker{display:none;}
+  .math-summary:hover{background:var(--line-soft);color:#ffc93c;}
+  .math-chevron{font-size:10px;color:var(--teal);
+    transition:transform .25s var(--e-out);}
+  .math-details[open] .math-chevron{transform:rotate(180deg);}
+  .math-content{padding:16px;background:rgba(14, 19, 32, 0.5);border:1px solid var(--line);
+    border-top:0;border-bottom-left-radius:6px;border-bottom-right-radius:6px;
+    animation:reveal .3s var(--e-out);}
+  @keyframes reveal{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+
+  .mathlab{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--gpsy);font-weight:600;margin:4px 0 12px;}
+  .prob{background:var(--surface-soft);border:1px solid var(--line-soft);border-radius:8px;
+    padding:12px 14px;font-size:12.5px;line-height:1.55;color:var(--ink-2);
+    margin:0 0 16px;}
+  .ppill{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--gpsy);font-weight:600;margin-bottom:4px;}
+  .step{margin-top:12px;padding:0 0 12px;border-bottom:1px solid var(--line-soft);}
+  .step:last-child{border-bottom:0;padding-bottom:0;}
+  .sname{font-family:var(--sans);font-weight:600;font-size:13.5px;color:var(--teal);}
+  .step p{font-size:12.5px;line-height:1.55;color:var(--ink-3);margin:6px 0 0;}
+  .run{font-size:12.5px;color:var(--ink-2);margin-top:8px;}
+
+  mjx-container[display="true"]{overflow-x:auto;overflow-y:hidden;max-width:100%;
+    text-align:left !important;margin:.6em 0 !important;padding-bottom:2px;}
+  mjx-container[display="true"]::-webkit-scrollbar{height:5px;}
+  mjx-container[display="true"]::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px;}
+
+  /* ---- footer ---- */
+  .foot{max-width:860px;margin:50px auto 0;padding-top:20px;
+    border-top:1px solid var(--line);color:var(--faint);font-size:11px;
+    font-family:var(--mono);text-align:center;letter-spacing:-.01em;}
+
+  /* ---- fusion card ---- */
+  .fusion-card{background:var(--surface);border:2px solid var(--teal);border-radius:16px;padding:32px;margin:40px auto 0;max-width:860px;
+    box-shadow:0 12px 40px rgba(6, 182, 212, 0.12);transition:border-color 0.3s ease;}
+  .fusion-card.level-CRITICAL{border-color:var(--danger);box-shadow:0 12px 40px rgba(255, 92, 92, 0.16);}
+  .fusion-card.level-ALERT{border-color:var(--danger);box-shadow:0 12px 40px rgba(255, 92, 92, 0.12);}
+  .fusion-card.level-ELEVATED{border-color:var(--gpsy);box-shadow:0 12px 40px rgba(242, 193, 78, 0.12);}
+  .fusion-card.level-NOMINAL{border-color:var(--teal);box-shadow:0 12px 40px rgba(6, 182, 212, 0.12);}
+
+  .fusion-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:16px;}
+  .fusion-title{font-size:20px;font-weight:700;margin:0;letter-spacing:-0.02em;display:flex;align-items:center;gap:12px;color:#ffffff;}
+
+  .badge{display:inline-block;padding:6px 14px;border-radius:20px;font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;}
+  .badge-CRITICAL{background:rgba(255, 92, 92, 0.15);color:var(--danger);border:1px solid rgba(255, 92, 92, 0.3);}
+  .badge-ALERT{background:rgba(255, 92, 92, 0.12);color:var(--danger);border:1px solid rgba(255, 92, 92, 0.25);}
+  .badge-ELEVATED{background:rgba(242, 193, 78, 0.12);color:var(--gpsy);border:1px solid rgba(242, 193, 78, 0.25);}
+  .badge-NOMINAL{background:rgba(6, 182, 212, 0.12);color:var(--teal);border:1px solid rgba(6, 182, 212, 0.25);}
+
+  .threat-gauge-container{margin:24px 0 16px;}
+  .gauge-label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;}
+  .gauge-value{font-size:26px;font-weight:800;color:#ffffff;}
+
+  .progress-bg{background:var(--surface-soft);border-radius:10px;height:18px;overflow:hidden;position:relative;border:1px solid var(--line);margin-bottom:20px;}
+  .progress-bar{height:100%;border-radius:10px;transition:width 0.5s ease;}
+
+  /* Stacked contribution bar */
+  .stacked-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-top:4px;background:var(--surface-soft);border:1px solid var(--line);}
+  .stacked-segment{height:100%;transition:width 0.5s ease;position:relative;}
+
+  .segment-label-list{display:flex;flex-wrap:wrap;gap:12px 24px;margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);}
+  .segment-label{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);font-weight:400;}
+  .color-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+  .fusion-summary{background:rgba(12, 18, 17, 0.4);border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:20px;font-size:13px;line-height:1.6;color:var(--ink-2);}
+  .fusion-summary p{margin:0 0 8px;}
+  .fusion-summary p:last-child{margin-bottom:0;}
+  .fusion-summary b{color:#ffffff;}
+  .fusion-summary code{font-family:var(--mono);font-size:11px;color:var(--teal);}
+
+  .fusion-tabs{display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:14px;}
+  .fusion-tab-btn{background:var(--surface-soft);border:1px solid var(--line);color:var(--muted);padding:8px 16px;border-radius:20px;font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s ease;}
+  .fusion-tab-btn:hover{color:var(--ink);border-color:var(--teal);}
+  .fusion-tab-btn.active{background:var(--teal);color:#030712;border-color:var(--teal);font-weight:600;}
+  .fusion-tab-content{display:none;}
+  .fusion-tab-content.active-content{display:block;}
+
+  /* ---- scroll reveal (progressive; content is visible without JS) ---- */
+  .reveal{opacity:0;transform:translateY(20px);}
+  .reveal.in{opacity:1;transform:none;
+    transition:opacity .7s var(--e-out),transform .7s var(--e-out);}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;transition-duration:.001ms !important;}
+    .reveal{opacity:1 !important;transform:none !important;}
+  }
+"""
+
+
+SCRIPT = """
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var secs = document.querySelectorAll('.section');
+  if(reduce || !('IntersectionObserver' in window)) return;
+  secs.forEach(function(s){ s.classList.add('reveal'); });
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, {rootMargin:'0px 0px -12% 0px', threshold:0.08});
+  secs.forEach(function(s){ io.observe(s); });
+})();
+
+function switchFusion(mode) {
+  document.querySelectorAll('.fusion-tab-btn').forEach(function(btn) {
+    btn.classList.remove('active');
+  });
+  document.querySelectorAll('.fusion-tab-content').forEach(function(content) {
+    content.classList.remove('active-content');
+  });
+
+  var btn = document.querySelector('button[onclick*="' + mode + '"]');
+  if (btn) btn.classList.add('active');
+
+  var content = document.getElementById('fusion-content-' + mode);
+  if (content) {
+    content.classList.add('active-content');
+    var card = document.querySelector('.fusion-card');
+    if (card) {
+      var level = content.getAttribute('data-level');
+      card.className = 'fusion-card level-' + level + ' reveal in';
+      var badge = document.getElementById('fusion-global-badge');
+      if (badge) {
+        badge.textContent = level + ' THREAT';
+        badge.className = 'badge badge-' + level;
+      }
+    }
+  }
+}
+</script>"""
+
+
+MASTHEAD = """
+  <header class="masthead">
+    <p class="status"><span class="live"></span>Live run &middot; real detectors, simulated inputs</p>
+    <h1>Five detectors, one vehicle, watched in real time</h1>
+    <p class="lede">Every panel animates the real output of a real detector, captured on this run.
+    The inputs are each project's own simulation, and the detection code and the numbers are genuine.</p>
+    <div class="readout">
+      <div class="chip"><b>5/5</b> layers detecting</div>
+      <div class="chip"><b>0.000</b> false-alarm rate</div>
+      <div class="chip"><b>1.000</b> detection rate</div>
+      <div class="chip"><b>FPGA</b> testbench PASS</div>
+    </div>
+    <p class="stack-note">The stack is walked from the outside in: navigation first, then communication,
+    perception, the in-vehicle network, and the hardware gateway. The navigation detector leads as the
+    <b>flagship</b>, and the same sensor-fusion and anomaly-detection core carries across the others.</p>
+  </header>"""
 
 
 def make_math():
@@ -429,8 +725,7 @@ def make_explainer():
     keys = ["nav", "comm", "perc", "can", "fpga"]
     result = {}
     for key, det in zip(keys, D):
-        parts = ['<div class="mathlab">The math, step by step</div>']
-        parts.append('<p class="prob"><span class="ppill">The problem</span>' + det["problem"] + '</p>')
+        parts = ['<p class="prob"><span class="ppill">The problem</span>' + det["problem"] + '</p>']
         for name, latex, prose in det["steps"]:
             parts.append('<div class="step"><div class="sname">' + name + '</div>')
             parts.append(r'\[' + latex + r'\]')
@@ -440,133 +735,279 @@ def make_explainer():
 
 
 def build_html(imgs):
-    order = [
-        ("Navigation &middot; GPS spoofing", imgs["nav"],
-         "An Extended Kalman Filter fuses the car's GPS with its inertial sensors to estimate where "
-         "it truly is. Halfway through the drive the GPS is spoofed with a sudden jump. The filter "
-         "compares each GPS fix against its own physics-based prediction with a chi-square test, and "
-         "the instant the spoofed fix disagrees with the motion, it fires.",
-         "GPS spoofing makes the vehicle navigate on a lie. A faked position can route a car off "
-         "course or into a hazard with no obvious sensor failure, which makes it one of the most "
-         "dangerous attacks on connected vehicles.",
-         "Proves the navigation layer can catch a location attack in real time using only sensors "
-         "the car already has, with zero false alarms on honest data. This sensor-fusion and "
-         "anomaly-detection core is the same math that carries over to biosignal monitoring."),
-        ("Communication &middot; V2X jamming", imgs["comm"],
-         "A real OFDM radio link, like the one cars use to talk to each other and to infrastructure, "
-         "is measured frame by frame. Honest frames sit under a learned power threshold. When a tone "
-         "jammer switches on, the received power spikes over the line and the detector flags and "
-         "classifies it.",
-         "V2X messages carry safety warnings like collision and emergency-braking alerts. If an "
-         "attacker jams that radio, the car goes deaf to its surroundings at exactly the moment it "
-         "needs to hear them.",
-         "Shows the communication layer can notice it is being silenced, and identify how, using "
-         "standard energy detection plus spectral analysis, with no false alarms on clean frames."),
-        ("Perception &middot; adversarial patch", imgs["perc"],
-         "A camera scene gets an adversarial patch added, the kind of printed sticker that fools a "
-         "vision model into misreading a sign. The detector scans for the dense high-frequency, "
-         "high-saturation texture that patches have and natural scenes lack, and boxes the suspect "
-         "regions (red) around where the patch really is (dashed yellow).",
-         "The camera is the car's primary eyes. One well-placed patch can flip a classification and "
-         "trigger a wrong, potentially fatal driving decision. This is the most studied class of AV "
-         "attack.",
-         "Demonstrates the perception layer can localize a physical-world attack on the camera, and "
-         "pairs an explainable frequency method with a trained CNN so the two can be compared."),
-        ("In-vehicle network &middot; CAN flood", imgs["can"],
-         "The timing of messages on the car's internal CAN bus, the network linking engine, brakes, "
-         "and steering, is plotted live. Legitimate traffic is strictly periodic, forming clean "
-         "rows. A denial-of-service flood injects an unknown ID far too fast, breaking that rhythm, "
-         "and the timing detector flags it at once.",
-         "The CAN bus has no built-in authentication, so any compromised component can flood or "
-         "spoof safety-critical commands. This is where a perception or network attack finally turns "
-         "into physical control, the heart of cross-layer propagation.",
-         "Proves the deepest layer, the control network itself, can be defended with a lightweight "
-         "timing model that runs on an embedded gateway, catching floods at 100 percent detection "
-         "and zero false positives on public data."),
-        ("Hardware &middot; FPGA CAN IDS", imgs["fpga"],
-         "The same CAN detector, rebuilt in synthesizable Verilog and run through a real hardware "
-         "simulation. The waveform shows message strobes arriving, and when an attack frame hits, "
-         "the alert line pulses within a single clock cycle.",
-         "Software detection adds latency, but a real automotive gateway must flag an attack at line "
-         "rate, before a malicious frame is acted on. Doing it in hardware is what makes the defense "
-         "actually deployable on a vehicle.",
-         "Shows the detection logic works in real digital hardware at single-cycle latency, bridging "
-         "the work from a Python demo to something that could sit on a physical FPGA gateway. Core "
-         "ECE digital-design proof."),
+    nav = {
+        "id": "nav",
+        "title": "Navigation &middot; GPS spoofing",
+        "thesis": "An Extended Kalman Filter fuses GPS with the car's own inertial sensors, then "
+                  "challenges every fix with a chi-square test. The instant a spoof disagrees with "
+                  "the physics the filter fires, with zero false alarms on honest data.",
+        "alt": "Animated map. The car's true path is a teal line, the spoofed GPS fixes jump away as "
+               "red crosses, and the dashed EKF estimate tracks the truth until a red banner reads "
+               "GPS spoofing detected.",
+        "figcap": "True path against spoofed GPS against the EKF estimate, from one live run.",
+        "does": "An Extended Kalman Filter fuses the car's GPS with its inertial sensors to estimate where it truly is, moment to moment. The teal line is the real path, the dashed line is the filter's estimate, and the red crosses are GPS fixes that have been spoofed. Halfway through the drive the GPS is attacked with a sudden position jump, so the reported location leaps away from the true one. The filter compares every incoming GPS fix against its own physics-based prediction using a chi-square test on the innovation, which is the gap between what it expected and what it received. As long as the two agree the drive looks normal, but the instant the spoofed fix disagrees with the motion the car is actually feeling, the test spikes past its gate and the detector fires. The red banner marks the exact frame where the spoof is caught.",
+        "why": "GPS spoofing makes the vehicle navigate on a lie, and it does so quietly. A faked position can route a car off its intended course, send it toward a hazard, or push it across a lane boundary, all without any obvious hardware failure to warn the driver. Because the GPS receiver itself reports clean, confident fixes, nothing downstream has a reason to distrust them. That silence is what makes spoofing one of the most dangerous attacks on connected and autonomous vehicles. It also scales cheaply, since a single roadside transmitter can spoof every receiver in range at once. Catching it therefore has to happen inside the vehicle, from physics the attacker cannot fake.",
+        "contrib": "This proves the navigation layer can catch a location attack in real time using only sensors the car already carries, with no extra hardware and zero false alarms on honest data. It works by fusing GPS and inertial measurements and then testing their consistency, rather than trusting any single sensor on its own. The same chi-square innovation test and CUSUM change detector generalize to any setting where a trusted signal can be quietly manipulated. That sensor-fusion and anomaly-detection core is the exact math that carries over to biosignal monitoring and alarm-fatigue research. Within the cross-layer framework it anchors the navigation layer with a clean, measurable detector. It is also the flagship example of turning raw sensor streams into a decision you can defend.",
+    }
+    rest = [
+        {"id": "comm",
+         "title": "Communication &middot; V2X jamming",
+         "alt": "Animated line chart of received radio power per frame. Points stay teal below the "
+                "yellow jamming threshold, then spike red above it when the jammer switches on and a "
+                "red banner reads jamming detected.",
+         "figcap": "Received power per frame against the learned jamming threshold.",
+         "does": "A real OFDM radio link, the same kind of physical layer cars use to talk to each other and to roadside infrastructure, is measured frame by frame. Each point on the chart is the received power in one frame, and honest traffic sits comfortably below a threshold the detector learned from clean data. When a tone jammer switches on it floods the band with energy, so the received power spikes above the yellow line. The detector flags those frames as jammed and then inspects the spectrum shape to classify the jammer as a narrowband tone, a wideband barrage, or a sweep. The red banner marks the moment the link realizes it is under attack. Everything here runs on standard energy detection plus spectral analysis, not on a black box.",
+         "why": "V2X messages carry the safety information a car depends on, including collision alerts, emergency-braking notices, and signal-phase timing from intersections. If an attacker jams that radio, the vehicle goes deaf to its surroundings at exactly the moment it most needs to hear them. Jamming is also cheap and hard to trace, since the attacker only has to transmit noise and never has to break any cryptography. A car that cannot tell jamming from a genuinely quiet channel will simply assume the road ahead is clear. Detecting the jamming is the difference between failing silently and failing safely, for example by slowing down or handing control back to the driver. This layer gives the vehicle a way to know when its ears have been taken away.",
+         "contrib": "This shows the communication layer can notice when it is being silenced, and can identify how, rather than just losing packets with no explanation. It builds a genuine OFDM waveform and attacks it, so the detection is measured against a real physical layer instead of a toy signal. The method reaches full detection and correct classification at a realistic signal-to-noise ratio, with no false alarms on clean frames. Because it relies on energy and spectral features, it is light enough to run continuously on the radio hardware a vehicle already has. In the cross-layer picture it defends the wireless entry point an attacker would use to reach the rest of the stack. It also demonstrates the DSP and spectral-analysis foundation that the whole communication defense is built on."},
+        {"id": "perc",
+         "title": "Perception &middot; adversarial patch",
+         "alt": "Two camera frames side by side. The clean scene on the left, and on the right an "
+                "adversarial patch with red detector boxes converging on the dashed-yellow true "
+                "patch location.",
+         "figcap": "Detector boxes in red closing on the real patch in dashed yellow.",
+         "does": "A camera scene is shown twice: the clean frame on the left, and on the right the same frame with an adversarial patch added, the kind of printed sticker that can fool a vision model into misreading a sign. The detector scans the image for the dense high-frequency, high-saturation texture that these patches carry and that natural scenes almost never contain. As it searches, it draws red boxes around the regions it finds most suspicious, and those boxes converge on where the patch really is, marked in dashed yellow. The tighter the red boxes close on the yellow region, the more confident the localization. This is deliberately an explainable method, so you can see why a region was flagged instead of trusting a single opaque score. A trained CNN runs alongside it as a second opinion.",
+         "why": "The camera is the car's primary set of eyes, and most driving decisions trace back to what it reports. One well-placed patch can flip a classification, turning a stop sign into a speed-limit sign in the model's view, and trigger a wrong and potentially fatal maneuver. Because the attack is a physical object in the world, it needs no digital access to the vehicle at all. It also survives changes in distance, angle, and lighting, which makes it practical rather than merely theoretical. This is the most studied class of attack on autonomous vehicles for exactly that reason. A perception layer that can find and isolate the patch is what lets the car recover the correct reading instead of acting on the lie.",
+         "contrib": "This demonstrates the perception layer can localize a physical-world attack on the camera, not merely notice that something is wrong. It pairs an explainable frequency-and-saturation method with a trained CNN, so a transparent signal-processing approach and a learned model can be compared head to head. Once the patch is located, masking it lets the underlying model re-read the scene and recover the correct prediction. Reaching very high accuracy on this task shows the approach is more than a demonstration. Within the framework it defends the top of the stack, where an attack is most visible to a human yet most damaging to the machine. It also brings the computer-vision and adversarial-machine-learning side of the work into the same measured format as every other layer."},
+        {"id": "can",
+         "title": "In-vehicle network &middot; CAN flood",
+         "alt": "Animated scatter of CAN bus messages over time. Legitimate traffic forms clean "
+                "periodic rows in teal, then a red denial-of-service flood breaks the rhythm and a "
+                "red banner reads CAN intrusion detected.",
+         "figcap": "Arbitration ID against time. The flood is the block that breaks the grid.",
+         "does": "The timing of messages on the car's internal CAN bus, the network that links the engine, brakes, and steering, is plotted live as arbitration ID against time. Legitimate traffic is strictly periodic, so honest messages form clean, evenly spaced rows across the chart. The detector learns each message's normal period during a short training window, and it needs no authentication on the bus to do so. When a denial-of-service flood injects an unknown ID far too fast, it breaks that rhythm and shows up as a dense block that does not fit the grid. The timing model sees the violated period immediately and raises the red intrusion banner. The same logic also catches injection, replay, and bus-off attacks, not only flooding.",
+         "why": "The CAN bus was designed for reliability, not security, so it has no built-in authentication and every node trusts every message it sees. That means any single compromised component, whether a hacked infotainment unit or a malicious plug-in dongle, can flood or spoof safety-critical commands. This is the layer where an attack that began at the camera or the radio finally turns into physical control of the vehicle, which is the heart of cross-layer propagation. A flood here can drown out real brake or steering messages at the worst possible moment. Because the bus is closed and fast, the defense has to be lightweight and run in real time on an embedded gateway. Protecting it is what keeps a higher-layer compromise from ever reaching the actuators.",
+         "contrib": "This proves the deepest layer, the control network itself, can be defended with a lightweight timing model rather than a heavy cryptographic retrofit. It learns the normal cadence of the bus and flags deviations, so it needs no changes to the existing controllers or the message format. On public CAN intrusion data it reaches full detection with zero false positives, which is the standard a safety case demands. Because it is cheap to compute, it can run continuously on the kind of gateway a real vehicle already carries. In the cross-layer story it is the last line before an attack becomes motion, so its reliability matters most of all. It also sets up the hardware version that follows, where the same detector is pushed down into silicon."},
+        {"id": "fpga",
+         "title": "Hardware &middot; FPGA CAN IDS",
+         "alt": "Animated digital waveform of the Verilog CAN detector. A sweep cursor moves across "
+                "the frame_valid and alert lines, and the alert pulses one clock cycle after an "
+                "attack frame arrives.",
+         "figcap": "The real Verilog waveform. Alerts fire at single-cycle latency.",
+         "does": "This is the same CAN timing detector, but rebuilt in synthesizable Verilog and run through a real hardware simulation instead of Python. The waveform shows the actual digital signals: the message-valid strobes arriving on the bus, and the alert line the detector drives. A sweep cursor moves across the trace so you can follow events in clock-cycle time. When an attack frame arrives, the alert line pulses within a single clock cycle of the violation, with no software loop in between. The design is self-checking, so the testbench itself confirms the detector stays silent on normal traffic and fires on attacks. What you are watching is register-transfer logic behaving exactly as it would on a real chip.",
+         "why": "Software detection, however accurate, adds latency, and a real automotive gateway has to flag an attack at line rate, before a malicious frame is ever acted on. At bus speed even a few milliseconds of delay can be the difference between catching a spoofed brake command and executing it. Moving the detector into hardware removes the operating system, the scheduler, and the interpreter from the critical path entirely. Single-cycle latency means the alert is ready essentially the moment the offending frame is seen. This is also what makes the defense deployable, since production gateways are built from exactly this kind of logic. A detector that only runs in a notebook cannot protect a moving vehicle, but one in silicon can.",
+         "contrib": "This shows the detection logic works in real digital hardware at single-cycle latency, closing the gap between a Python demonstration and something that could sit on a physical FPGA gateway. It is written in synthesizable Verilog, so it is not a simulation shortcut but code that could be placed and routed onto a real device. The self-checking testbench passes, which is the hardware equivalent of a green test suite. Proving the same defense in both software and silicon is a genuine cross-domain result, not a repeat of a single idea. It is also a core ECE digital-design proof, the kind that shows the work holds up at the register-transfer level. Within the framework it is the layer that turns a research detector into a deployable one."},
     ]
-    keys = ["nav", "comm", "perc", "can", "fpga"]
+
     ex = make_explainer()
-    blocks = "".join(DETBLOCK.format(title=t, img=g, does=a, why=b, contrib=c, mathx=ex[k])
-                     for k, (t, g, a, b, c) in zip(keys, order))
-    return f"""<!doctype html><html><head><meta charset="utf-8">
-<title>AV Stack Defense - Live</title>
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-<style>
-  body{{margin:0;background:{INK};color:{FG};font-family:'Segoe UI',system-ui,sans-serif;}}
-  .wrap{{max-width:1120px;margin:0 auto;padding:34px 22px 80px;}}
-  .eyebrow{{font-family:ui-monospace,Consolas,monospace;font-size:11px;letter-spacing:.2em;
-    text-transform:uppercase;color:{ACCENT};}}
-  h1{{font-size:30px;margin:6px 0 4px;letter-spacing:-.02em;}}
-  .sub{{color:#93a19f;font-size:14.5px;max-width:72ch;}}
-  .strip{{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 6px;}}
-  .stat{{background:#131a19;border:1px solid #243130;border-radius:9px;padding:8px 13px;
-    font-family:ui-monospace,Consolas,monospace;font-size:12.5px;}}
-  .stat b{{color:{ACCENT};}}
-  .dot{{width:8px;height:8px;border-radius:50%;background:{ACCENT};box-shadow:0 0 8px {ACCENT};
-    display:inline-block;flex:0 0 auto;}}
-  .detblock{{max-width:820px;margin:34px auto 0;border-top:1px solid #243130;padding-top:28px;}}
-  .detblock:first-of-type{{border-top:0;padding-top:8px;}}
-  .dt{{font-size:20px;font-weight:700;margin:0 0 14px;display:flex;align-items:center;gap:10px;
-    letter-spacing:-.01em;}}
-  .animrow{{text-align:center;}}
-  .animrow img{{width:100%;max-width:600px;border-radius:10px;background:{INK};
-    border:1px solid #243130;}}
-  .cap{{margin-top:16px;}}
-  .cap p{{color:#aeb9b7;font-size:13px;line-height:1.55;margin:0 0 9px;}}
-  .cap p:last-child{{margin-bottom:0;}}
-  .lbl{{display:block;font-family:ui-monospace,Consolas,monospace;font-size:10px;letter-spacing:.09em;
-    text-transform:uppercase;color:{ACCENT};margin-bottom:3px;font-weight:600;}}
-  .mathx{{margin-top:20px;}}
-  .mathlab{{font-family:ui-monospace,Consolas,monospace;font-size:10.5px;letter-spacing:.09em;
-    text-transform:uppercase;color:{GPSY};margin-bottom:10px;}}
-  .prob{{background:#131a19;border:1px solid #243130;border-radius:9px;padding:12px 14px;
-    font-size:13.5px;line-height:1.55;color:#c3ccca;}}
-  .ppill{{display:inline-block;font-family:ui-monospace,Consolas,monospace;font-size:9.5px;
-    letter-spacing:.09em;text-transform:uppercase;color:{GPSY};margin-right:9px;}}
-  .step{{margin-top:18px;}}
-  .sname{{font-weight:650;font-size:14px;color:{ACCENT};margin-bottom:2px;}}
-  .step p{{font-size:13.5px;line-height:1.65;color:#b7c2c0;margin:4px 0 0;}}
-  .step mjx-container[display="true"]{{text-align:left !important;margin:.45em 0 !important;
-    overflow-x:auto;overflow-y:hidden;max-width:100%;}}
-  .foot{{max-width:820px;margin:40px auto 0;color:#63716f;font-size:12px;
-    font-family:ui-monospace,Consolas,monospace;}}
-</style></head><body><div class="wrap">
-  <div class="eyebrow">Cross-layer AV defense &middot; live run (real detectors, simulated inputs)</div>
-  <h1>Five detectors, one vehicle, watched in real time</h1>
-  <p class="sub">Every panel animates the real output of a real detector from the repos, captured on
-  this run. Inputs are the projects' own simulations; the detection code and results are genuine.</p>
-  <div class="strip">
-    <div class="stat"><b>5/5</b> layers detecting</div>
-    <div class="stat"><b>0.000</b> false-alarm rate</div>
-    <div class="stat"><b>1.000</b> detection rate</div>
-    <div class="stat"><b>FPGA</b> testbench PASS</div>
-  </div>
-  {blocks}
-  <div class="foot">Generated live from av-stack-defense/viz/build.py. Re-run to regenerate.</div>
-</div></body></html>"""
+    hero = HERO_BLOCK.format(
+        title=nav["title"], thesis=nav["thesis"], img=imgs["nav"], alt=nav["alt"],
+        figcap=nav["figcap"], does=nav["does"], why=nav["why"], contrib=nav["contrib"],
+        math=MATH_DETAILS.format(body=ex["nav"]))
+    others = "".join(
+        DET_BLOCK.format(
+            id=d["id"], title=d["title"], img=imgs[d["id"]], alt=d["alt"],
+            figcap=d["figcap"], does=d["does"], why=d["why"], contrib=d["contrib"],
+            math=MATH_DETAILS.format(body=ex[d["id"]]))
+        for d in rest)
+
+    # Load fusion data helper
+    def load_json(name):
+        path = os.path.join(UMB, name)
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return {}
+
+    f_attack = load_json("fusion.json")
+    f_clean = load_json("fusion_clean.json")
+    f_coord = load_json("fusion_coordinated.json")
+
+    f_attack_safety = load_json("fusion_safety.json")
+    f_clean_safety = load_json("fusion_clean_safety.json")
+    f_coord_safety = load_json("fusion_coordinated_safety.json")
+    f_val = load_json("fusion_validation.json")
+
+    def render_fusion_tab(fusion, fusion_safety, mode_id, active=False, validation=None):
+        stacked_segments = []
+        segment_labels = []
+
+        layer_colors = {
+            "adversarial-patch-detector": "var(--teal)",
+            "ekf-gps-spoof-detector": "var(--blue)",
+            "v2x-jamming-detector": "var(--gpsy)",
+            "canbus-ids": "var(--danger)",
+            "canbus-ids-fpga": "#b088ff"
+        }
+        layer_shortnames = {
+            "adversarial-patch-detector": "Perception",
+            "ekf-gps-spoof-detector": "Navigation",
+            "v2x-jamming-detector": "Communication",
+            "canbus-ids": "CAN (SW)",
+            "canbus-ids-fpga": "CAN (FPGA)"
+        }
+
+        for L in fusion.get("layers", []):
+            repo = L.get("repo")
+            color = layer_colors.get(repo, "#cccccc")
+            name = layer_shortnames.get(repo, L.get("layer"))
+            contrib = L.get("contribution", 0.0)
+            phi = L.get("phi", 0.0)
+
+            seg_pct = contrib * 100
+            stacked_segments.append(
+                f'<div class="stacked-segment" style="width: {seg_pct}%; background: {color};" '
+                f'title="{name}: contribution={contrib:.3f} (phi={phi:.3f})"></div>'
+            )
+
+            segment_labels.append(
+                f'<div class="segment-label">'
+                f'<span class="color-dot" style="background: {color};"></span>'
+                f'<b>{name}</b> ({contrib:.3f})'
+                f'</div>'
+            )
+
+        stacked_bar_html = "".join(stacked_segments)
+        segment_labels_html = "".join(segment_labels)
+
+        threat_pct = fusion.get("joint_threat_score", 0.0) * 100
+        threat_pct_safety = fusion_safety.get("joint_threat_score", 0.0) * 100
+        level = fusion.get("level", "NOMINAL")
+
+        alarm_status = "ACTIVE DETECTED ALERT" if fusion.get("global_alarm") else "NOMINAL OPERATION"
+        alarm_class = "badge-ALERT" if fusion.get("global_alarm") else "badge-NOMINAL"
+        reason = fusion.get("alarm_reason", "None")
+        if reason == "coordinated":
+            reason = "Coordinated Multi-Layer Evasion (Rule B)"
+        elif reason == "single-layer":
+            reason = "Single-Layer Hard Trip (Rule A)"
+
+        active_class = "active-content" if active else ""
+
+        thesis_html = ""
+        if mode_id == "coordinated" and fusion.get("thesis_proven"):
+            thesis_html = (
+                '<p style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">'
+                '<b style="color:var(--teal);">Cross-layer thesis proven.</b> Every local detector stayed '
+                'silent and no single layer crossed its own threshold, yet the fused score raised a coordinated '
+                'alarm. A quiet, multi-layer attack that slips under every individual gate is still caught.</p>'
+            )
+        val_html = ""
+        if validation and validation.get("fused_false_alarm_rate") is not None:
+            _fa = validation.get("fused_false_alarm_rate")
+            _tr = validation.get("trials", 0)
+            _p95 = validation.get("t_joint_p95")
+            val_html = (
+                f'<p style="margin-top:8px;"><b>Held-out false-alarm rate:</b> '
+                f'<code>{_fa:.3f}</code> over {_tr:,} clean Monte-Carlo trials, calibrated and evaluated on '
+                f'disjoint clean data (clean T_joint p95 = <code>{_p95}</code>). Fusion adds no false alarms.</p>'
+            )
+
+        return f"""
+        <div id="fusion-content-{mode_id}" class="fusion-tab-content {active_class}" data-level="{level}">
+          <div class="threat-gauge-container">
+            <div class="gauge-label">
+              <span>Joint Threat Score (T_joint) &middot; Equal Weights</span>
+              <span class="gauge-value">{threat_pct:.1f}%</span>
+            </div>
+            <div class="progress-bg">
+              <div class="progress-bar" style="width: {threat_pct}%; background: {"var(--danger)" if level in ["ALERT", "CRITICAL"] else ("var(--gpsy)" if level == "ELEVATED" else "var(--teal)")};"></div>
+            </div>
+
+            <div class="gauge-label" style="margin-top: 10px;">
+              <span>Joint Threat Score (T_joint) &middot; Safety-Critical Weights</span>
+              <span class="gauge-value" style="font-size: 18px; color: var(--ink-2);">{threat_pct_safety:.1f}%</span>
+            </div>
+            <div class="progress-bg" style="height: 10px; margin-bottom: 24px;">
+              <div class="progress-bar" style="width: {threat_pct_safety}%; background: {"var(--danger)" if level in ["ALERT", "CRITICAL"] else ("var(--gpsy)" if level == "ELEVATED" else "var(--teal)")}; opacity: 0.75;"></div>
+            </div>
+
+            <div class="gauge-label" style="margin-bottom: 4px;">
+              <span>Anomalous Energy Contribution Breakdown (Equal Weights)</span>
+            </div>
+            <div class="stacked-bar">
+              {stacked_bar_html}
+            </div>
+            <div class="segment-label-list">
+              {segment_labels_html}
+            </div>
+          </div>
+
+          <div class="fusion-summary">
+            <p><b>Global Alarm Status:</b> <span class="badge {alarm_class}" style="padding: 2px 10px; font-size: 11px;">{alarm_status}</span>
+               {f"&nbsp;&bull;&nbsp; <b>Reason:</b> <code>{reason}</code>" if fusion.get("global_alarm") else ""}</p>
+            <p><b>Calibration Mode:</b> Auto-calibrated runtime exceedance scales (\(a_i\)) mapping clean medians to \(\phi_i \\approx 0.10\).</p>
+            {val_html}
+            {thesis_html}
+          </div>
+        </div>
+        """
+
+    tab_attack = render_fusion_tab(f_attack, f_attack_safety, "attack", active=True, validation=f_val)
+    tab_coord = render_fusion_tab(f_coord, f_coord_safety, "coordinated", active=False, validation=f_val)
+    tab_clean = render_fusion_tab(f_clean, f_clean_safety, "clean", active=False, validation=f_val)
+
+    level = f_attack.get("level", "NOMINAL")
+
+    fusion_card_html = f"""
+    <section class="fusion-card level-{level} reveal">
+      <div class="fusion-header">
+        <h2 class="fusion-title"><span class="live" style="background:var(--danger) !important; box-shadow:0 0 10px var(--danger) !important;"></span>Cross-Layer Signal Fusion Panel</h2>
+        <span class="badge badge-{level}" id="fusion-global-badge">{level} THREAT</span>
+      </div>
+
+      <div class="fusion-tabs">
+        <button class="fusion-tab-btn active" onclick="switchFusion('attack')">Saturated Attack</button>
+        <button class="fusion-tab-btn" onclick="switchFusion('coordinated')">Coordinated Evasion</button>
+        <button class="fusion-tab-btn" onclick="switchFusion('clean')">Nominal Drive</button>
+      </div>
+
+      {tab_attack}
+      {tab_coord}
+      {tab_clean}
+    </section>
+    """
+
+    return (
+        '<!doctype html><html lang="en"><head>'
+        '<meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        '<meta name="color-scheme" content="dark">'
+        '<title>AV Stack Defense - Live</title>'
+        '<script id="MathJax-script" async '
+        'src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>'
+        '<style>' + STYLE + '</style>'
+        '</head><body><main class="wrap">'
+        + MASTHEAD + fusion_card_html + hero + others +
+        '<footer class="foot">Generated live from av-stack-defense/viz/build.py. '
+        'Re-run to regenerate.</footer>'
+        '</main>' + SCRIPT + '</body></html>')
 
 
-def main():
-    print("Collecting real signals from each detector...")
-    collect()
-    print("Rendering animated visuals (this takes ~60-90s)...")
-    imgs = {"nav": nav_gif(), "comm": comm_gif(), "perc": perc_gif(),
-            "can": can_gif(), "fpga": fpga_gif()}
+def cached_imgs():
+    """Base64 of the already-rendered GIFs in data/, for HTML-only rebuilds."""
+    keys = ["nav", "comm", "perc", "can", "fpga"]
+    out = {}
+    for k in keys:
+        p = os.path.join(DATA, f"{k}.gif")
+        if not os.path.exists(p):
+            raise SystemExit(f"missing cached GIF {p}; run a full build first (drop --html-only)")
+        out[k] = _b64(p)
+    return out
+
+
+def write_html(imgs):
     out = os.path.join(HERE, "dashboard.html")
     with open(out, "w", encoding="utf-8") as f:
         f.write(build_html(imgs))
     print(f"Wrote {out}")
-    webbrowser.open("file:///" + out.replace("\\", "/"))
+    try:
+        webbrowser.open("file:///" + out.replace("\\", "/"))
+    except Exception as e:
+        print(f"(skipped opening browser: {e})")
+    return out
+
+
+def main():
+    if "--html-only" in sys.argv:
+        print("HTML-only rebuild from cached data/ artifacts...")
+        imgs = cached_imgs()
+    else:
+        print("Collecting real signals from each detector...")
+        collect()
+        print("Rendering animated visuals (this takes ~60-90s)...")
+        imgs = {"nav": nav_gif(), "comm": comm_gif(), "perc": perc_gif(),
+                "can": can_gif(), "fpga": fpga_gif()}
+    write_html(imgs)
 
 
 if __name__ == "__main__":

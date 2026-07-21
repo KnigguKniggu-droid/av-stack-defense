@@ -1,0 +1,428 @@
+{
+  "joint_threat_score": 0.938,
+  "level": "CRITICAL",
+  "global_alarm": true,
+  "alarm_reason": "single-layer",
+  "n_minor": 5,
+  "n_minor_eligible": 4,
+  "hard_trips": [
+    "Perception (camera / VLM input)",
+    "Navigation (GPS + IMU fusion)",
+    "Communication (V2X radio)",
+    "In-vehicle network (CAN bus, software)",
+    "In-vehicle network (CAN bus, FPGA/RTL)"
+  ],
+  "hard_trips_eligible": [
+    "Navigation (GPS + IMU fusion)",
+    "Communication (V2X radio)",
+    "In-vehicle network (CAN bus, software)",
+    "In-vehicle network (CAN bus, FPGA/RTL)"
+  ],
+  "weights_mode": "equal",
+  "config": {
+    "T_low": 0.15,
+    "T_star": 0.22,
+    "T_crit": 0.45,
+    "phi_minor": 0.3,
+    "k_min": 2,
+    "z0": 2.2
+  },
+  "used_layers": [
+    "Perception (camera / VLM input)",
+    "Navigation (GPS + IMU fusion)",
+    "Communication (V2X radio)",
+    "In-vehicle network (CAN bus, software)",
+    "In-vehicle network (CAN bus, FPGA/RTL)"
+  ],
+  "skipped_layers": [],
+  "layers": [
+    {
+      "layer": "Perception (camera / VLM input)",
+      "repo": "adversarial-patch-detector",
+      "metric": "r_win",
+      "value": 294.389366,
+      "threshold": 4.0,
+      "exceedance": 6.0,
+      "phi": 0.998,
+      "weight": 0.0,
+      "minor": false,
+      "trip": true,
+      "coordination_eligible": false,
+      "individual_safe": true,
+      "contribution": 0.0,
+      "in_score": false
+    },
+    {
+      "layer": "Navigation (GPS + IMU fusion)",
+      "repo": "ekf-gps-spoof-detector",
+      "metric": "d_nis",
+      "value": 169.75497,
+      "threshold": 9.21,
+      "exceedance": 6.0,
+      "phi": 0.998,
+      "weight": 0.25,
+      "minor": false,
+      "trip": true,
+      "coordination_eligible": true,
+      "individual_safe": true,
+      "contribution": 0.249,
+      "in_score": true
+    },
+    {
+      "layer": "Communication (V2X radio)",
+      "repo": "v2x-jamming-detector",
+      "metric": "P",
+      "value": 9.908056,
+      "threshold": 1.150544,
+      "exceedance": 6.0,
+      "phi": 0.998,
+      "weight": 0.25,
+      "minor": false,
+      "trip": true,
+      "coordination_eligible": true,
+      "individual_safe": true,
+      "contribution": 0.249,
+      "in_score": true
+    },
+    {
+      "layer": "In-vehicle network (CAN bus, software)",
+      "repo": "canbus-ids",
+      "metric": "rho",
+      "value": 470.071711,
+      "threshold": 418.902901,
+      "exceedance": 1.141,
+      "phi": 0.758,
+      "weight": 0.25,
+      "minor": false,
+      "trip": true,
+      "coordination_eligible": true,
+      "individual_safe": true,
+      "contribution": 0.189,
+      "in_score": true
+    },
+    {
+      "layer": "In-vehicle network (CAN bus, FPGA/RTL)",
+      "repo": "canbus-ids-fpga",
+      "metric": "c",
+      "value": 22.0,
+      "threshold": 80.0,
+      "exceedance": 6.0,
+      "phi": 0.998,
+      "weight": 0.25,
+      "minor": false,
+      "trip": true,
+      "coordination_eligible": true,
+      "individual_safe": true,
+      "contribution": 0.249,
+      "in_score": true
+    }
+  ],
+  "propagation": {
+    "raw_phis": {
+      "Perception": 0.998,
+      "Navigation": 0.998,
+      "Communication": 0.998,
+      "CAN (SW)": 0.758,
+      "CAN (FPGA)": 0.998
+    },
+    "adjusted_phis": {
+      "adversarial-patch-detector": 1.0,
+      "ekf-gps-spoof-detector": 1.0,
+      "v2x-jamming-detector": 0.998,
+      "canbus-ids": 1.0,
+      "canbus-ids-fpga": 1.0
+    },
+    "deltas": {
+      "Perception": 0.002,
+      "Navigation": 0.002,
+      "Communication": 0.0,
+      "CAN (SW)": 0.242,
+      "CAN (FPGA)": 0.002
+    },
+    "t_joint_raw": 0.938,
+    "t_joint_propagated": 1.0,
+    "delta": 0.0615
+  },
+  "mitigation": {
+    "state": "FULL_FALLBACK",
+    "state_label": "Full Fallback (Emergency Stop)",
+    "actions": [
+      {
+        "target": "vehicle",
+        "action": "INITIATE_SAFE_PULL_OVER",
+        "reason": "T_joint=1.000 >= 0.45 or 4 hard trips"
+      },
+      {
+        "target": "can_bus",
+        "action": "EMERGENCY_HW_OVERRIDE",
+        "reason": "Trigger hardware-level safe-stop state on CAN gateway"
+      },
+      {
+        "target": "ekf",
+        "action": "SWITCH_TO_IMU_ONLY",
+        "reason": "Isolate GPS completely, dead-reckon from IMU"
+      },
+      {
+        "target": "v2x",
+        "action": "REDUCE_GAIN_TO_ZERO",
+        "reason": "Silence V2X radio to prevent poisoned inputs"
+      },
+      {
+        "target": "perception",
+        "action": "MASK_LOW_CONFIDENCE",
+        "reason": "Ignore low-confidence vision detections"
+      }
+    ],
+    "isolated_layers": [
+      "adversarial-patch-detector",
+      "ekf-gps-spoof-detector",
+      "v2x-jamming-detector",
+      "canbus-ids",
+      "canbus-ids-fpga"
+    ],
+    "degraded_sensors": [
+      "gps",
+      "v2x",
+      "camera",
+      "can_bus"
+    ],
+    "safe_stop": true,
+    "register_overrides": {
+      "GPS_ENABLE": 0,
+      "V2X_GAIN": 0,
+      "SAFE_STOP_CMD": 1,
+      "CAN_MIN_PERIOD_OVERRIDE": 1
+    },
+    "trigger": {
+      "t_joint": 1.0,
+      "level": "CRITICAL",
+      "hard_trips": [
+        "Navigation (GPS + IMU fusion)",
+        "Communication (V2X radio)",
+        "In-vehicle network (CAN bus, software)",
+        "In-vehicle network (CAN bus, FPGA/RTL)"
+      ],
+      "nav_phi": 0.998,
+      "comm_phi": 0.998,
+      "perc_phi": 0.998,
+      "can_sw_phi": 0.758,
+      "can_hw_phi": 0.998
+    }
+  },
+  "bridge_state": {
+    "registers": {
+      "GPS_ENABLE": {
+        "address": "0x00",
+        "value": 0,
+        "access": "RW",
+        "description": "GPS receiver enable (1=on, 0=isolated)"
+      },
+      "V2X_GAIN": {
+        "address": "0x04",
+        "value": 0,
+        "access": "RW",
+        "description": "V2X radio gain (0=max, 255=silenced)"
+      },
+      "SAFE_STOP_CMD": {
+        "address": "0x08",
+        "value": 1,
+        "access": "RW",
+        "description": "Safe-stop command (1=pull over, 0=clear)"
+      },
+      "CAN_MIN_PERIOD_0": {
+        "address": "0x0C",
+        "value": 80,
+        "access": "RW",
+        "description": "Min period CAN ID 0x0C0 (cycles)"
+      },
+      "CAN_MIN_PERIOD_1": {
+        "address": "0x10",
+        "value": 80,
+        "access": "RW",
+        "description": "Min period CAN ID 0x0D0 (cycles)"
+      },
+      "CAN_MIN_PERIOD_2": {
+        "address": "0x14",
+        "value": 160,
+        "access": "RW",
+        "description": "Min period CAN ID 0x110 (cycles)"
+      },
+      "CAN_MIN_PERIOD_3": {
+        "address": "0x18",
+        "value": 800,
+        "access": "RW",
+        "description": "Min period CAN ID 0x320 (cycles)"
+      },
+      "CAN_RATE_FACTOR": {
+        "address": "0x1C",
+        "value": 320,
+        "access": "RW",
+        "description": "Bus rate factor (8.8 fixed, 1.25x=320)"
+      },
+      "PERCEPTION_MASK": {
+        "address": "0x20",
+        "value": 0,
+        "access": "RW",
+        "description": "Perception mask (1=filter, 0=normal)"
+      },
+      "MITIGATION_STATE": {
+        "address": "0x24",
+        "value": 6,
+        "access": "R",
+        "description": "Current mitigation state (enum)"
+      },
+      "THREAT_SCORE": {
+        "address": "0x28",
+        "value": 256,
+        "access": "R",
+        "description": "Current T_joint (8.8 fixed point)"
+      },
+      "HW_ALERT_STATUS": {
+        "address": "0x2C",
+        "value": 0,
+        "access": "R",
+        "description": "HW alert bitmap (bit0=timing, bit1=unknown)"
+      },
+      "VERSION": {
+        "address": "0x30",
+        "value": 258,
+        "access": "R",
+        "description": "Design version (1.2)"
+      }
+    },
+    "can_periods": {
+      "0x0C0": 80,
+      "0x0D0": 80,
+      "0x110": 160,
+      "0x320": 800
+    },
+    "gps_enabled": false,
+    "v2x_gain": 0,
+    "safe_stop": true,
+    "rate_factor": 1.25,
+    "write_count": 3,
+    "recent_writes": [
+      {
+        "address": "0x00",
+        "name": "GPS_ENABLE",
+        "old": 1,
+        "new": 0
+      },
+      {
+        "address": "0x04",
+        "name": "V2X_GAIN",
+        "old": 0,
+        "new": 0
+      },
+      {
+        "address": "0x08",
+        "name": "SAFE_STOP_CMD",
+        "old": 0,
+        "new": 1
+      }
+    ]
+  },
+  "graph_data": {
+    "nodes": [
+      {
+        "id": "adversarial-patch-detector",
+        "name": "Perception"
+      },
+      {
+        "id": "ekf-gps-spoof-detector",
+        "name": "Navigation"
+      },
+      {
+        "id": "v2x-jamming-detector",
+        "name": "Communication"
+      },
+      {
+        "id": "canbus-ids",
+        "name": "CAN (SW)"
+      },
+      {
+        "id": "canbus-ids-fpga",
+        "name": "CAN (FPGA)"
+      }
+    ],
+    "edges": [
+      {
+        "source": "adversarial-patch-detector",
+        "target": "ekf-gps-spoof-detector",
+        "weight": 0.08,
+        "source_name": "Perception",
+        "target_name": "Navigation"
+      },
+      {
+        "source": "adversarial-patch-detector",
+        "target": "canbus-ids",
+        "weight": 0.05,
+        "source_name": "Perception",
+        "target_name": "CAN (SW)"
+      },
+      {
+        "source": "adversarial-patch-detector",
+        "target": "canbus-ids-fpga",
+        "weight": 0.03,
+        "source_name": "Perception",
+        "target_name": "CAN (FPGA)"
+      },
+      {
+        "source": "ekf-gps-spoof-detector",
+        "target": "adversarial-patch-detector",
+        "weight": 0.05,
+        "source_name": "Navigation",
+        "target_name": "Perception"
+      },
+      {
+        "source": "ekf-gps-spoof-detector",
+        "target": "canbus-ids",
+        "weight": 0.12,
+        "source_name": "Navigation",
+        "target_name": "CAN (SW)"
+      },
+      {
+        "source": "ekf-gps-spoof-detector",
+        "target": "canbus-ids-fpga",
+        "weight": 0.1,
+        "source_name": "Navigation",
+        "target_name": "CAN (FPGA)"
+      },
+      {
+        "source": "v2x-jamming-detector",
+        "target": "ekf-gps-spoof-detector",
+        "weight": 0.1,
+        "source_name": "Communication",
+        "target_name": "Navigation"
+      },
+      {
+        "source": "v2x-jamming-detector",
+        "target": "canbus-ids",
+        "weight": 0.08,
+        "source_name": "Communication",
+        "target_name": "CAN (SW)"
+      },
+      {
+        "source": "v2x-jamming-detector",
+        "target": "canbus-ids-fpga",
+        "weight": 0.06,
+        "source_name": "Communication",
+        "target_name": "CAN (FPGA)"
+      },
+      {
+        "source": "canbus-ids",
+        "target": "canbus-ids-fpga",
+        "weight": 0.15,
+        "source_name": "CAN (SW)",
+        "target_name": "CAN (FPGA)"
+      },
+      {
+        "source": "canbus-ids-fpga",
+        "target": "canbus-ids",
+        "weight": 0.05,
+        "source_name": "CAN (FPGA)",
+        "target_name": "CAN (SW)"
+      }
+    ]
+  }
+}
