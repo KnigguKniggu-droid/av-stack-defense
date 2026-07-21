@@ -5,7 +5,7 @@
     {
       "target": "vehicle",
       "action": "INITIATE_SAFE_PULL_OVER",
-      "reason": "T_joint=1.000 >= 0.45 or 4 hard trips"
+      "reason": "T_joint=1.000 >= 0.45 or 5 hard trips"
     },
     {
       "target": "can_bus",
@@ -52,6 +52,7 @@
     "t_joint": 1.0,
     "level": "CRITICAL",
     "hard_trips": [
+      "Perception (camera / VLM input)",
       "Navigation (GPS + IMU fusion)",
       "Communication (V2X radio)",
       "In-vehicle network (CAN bus, software)",

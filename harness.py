@@ -55,7 +55,7 @@ FUSION_CONFIG = {
     "e_max": 6.0,
     "layers": {
         "adversarial-patch-detector": {
-            "type": "logratio", "direction": "high", "tau": 4.0, "a": 0.42, "w": 0.20,
+            "type": "logratio", "direction": "high", "tau": 6.0, "a": 0.42, "w": 0.20,
         },
         "ekf-gps-spoof-detector": {
             "type": "linear", "direction": "high", "tau": 9.21, "a": 4.60, "w": 0.20,

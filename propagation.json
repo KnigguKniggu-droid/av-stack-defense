@@ -21,35 +21,35 @@
       "CAN (SW)": 0.242,
       "CAN (FPGA)": 0.002
     },
-    "t_joint_raw": 0.938,
+    "t_joint_raw": 0.95,
     "t_joint_propagated": 1.0,
-    "delta": 0.0615
+    "delta": 0.0496
   },
   "coordinated": {
     "raw_phis": {
-      "Perception": 0.1,
+      "Perception": 0.14,
       "Navigation": 0.414,
       "Communication": 0.355,
       "CAN (SW)": 0.1,
       "CAN (FPGA)": 0.1
     },
     "adjusted_phis": {
-      "adversarial-patch-detector": 0.137,
-      "ekf-gps-spoof-detector": 0.489,
+      "adversarial-patch-detector": 0.177,
+      "ekf-gps-spoof-detector": 0.495,
       "v2x-jamming-detector": 0.355,
-      "canbus-ids": 0.257,
-      "canbus-ids-fpga": 0.25
+      "canbus-ids": 0.261,
+      "canbus-ids-fpga": 0.253
     },
     "deltas": {
-      "Perception": 0.0368,
-      "Navigation": 0.0751,
+      "Perception": 0.0369,
+      "Navigation": 0.0806,
       "Communication": 0.0,
-      "CAN (SW)": 0.1572,
-      "CAN (FPGA)": 0.1503
+      "CAN (SW)": 0.1609,
+      "CAN (FPGA)": 0.1528
     },
-    "t_joint_raw": 0.242,
-    "t_joint_propagated": 0.338,
-    "delta": 0.0959
+    "t_joint_raw": 0.222,
+    "t_joint_propagated": 0.308,
+    "delta": 0.086
   },
   "clean": {
     "raw_phis": {
@@ -74,7 +74,7 @@
       "CAN (FPGA)": 0.0625
     },
     "t_joint_raw": 0.1,
-    "t_joint_propagated": 0.137,
-    "delta": 0.0368
+    "t_joint_propagated": 0.131,
+    "delta": 0.0313
   }
 }

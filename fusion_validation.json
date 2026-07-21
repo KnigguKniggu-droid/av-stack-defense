@@ -1,9 +1,9 @@
 {
   "fused_false_alarm_rate": 0.0,
   "trials": 8000,
-  "t_joint_median": 0.0997,
-  "t_joint_p95": 0.1003,
-  "t_joint_max": 0.1003,
+  "t_joint_median": 0.0934,
+  "t_joint_p95": 0.1322,
+  "t_joint_max": 0.1325,
   "calibration_split_per_layer": 6,
   "heldout_split_per_layer": 6,
   "method": "50/50 clean-peak split; calibrate on split A, Monte-Carlo fused alarm on split B",
@@ -11,11 +11,11 @@
     {
       "layer": "Perception (camera / VLM input)",
       "repo": "adversarial-patch-detector",
-      "a": 0.0415,
-      "clean_phi_median": 0.101,
-      "clean_phi_p95": 0.327,
-      "clean_phi_max": 0.988,
-      "coordination_eligible": false
+      "a": 0.2258,
+      "clean_phi_median": 0.1,
+      "clean_phi_p95": 0.127,
+      "clean_phi_max": 0.272,
+      "coordination_eligible": true
     },
     {
       "layer": "Navigation (GPS + IMU fusion)",
@@ -55,6 +55,7 @@
     }
   ],
   "coordination_eligible_layers": [
+    "adversarial-patch-detector",
     "canbus-ids",
     "canbus-ids-fpga",
     "ekf-gps-spoof-detector",

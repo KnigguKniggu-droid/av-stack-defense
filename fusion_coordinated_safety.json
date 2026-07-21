@@ -1,5 +1,5 @@
 {
-  "joint_threat_score": 0.237,
+  "joint_threat_score": 0.223,
   "level": "ALERT",
   "global_alarm": true,
   "alarm_reason": "coordinated",
@@ -29,17 +29,17 @@
       "layer": "Perception (camera / VLM input)",
       "repo": "adversarial-patch-detector",
       "metric": "r_win",
-      "value": 3.650841,
-      "threshold": 4.0,
-      "exceedance": -2.2,
-      "phi": 0.1,
-      "weight": 0.0,
+      "value": 3.978564,
+      "threshold": 6.0,
+      "exceedance": -1.819,
+      "phi": 0.14,
+      "weight": 0.15,
       "minor": false,
       "trip": false,
-      "coordination_eligible": false,
+      "coordination_eligible": true,
       "individual_safe": true,
-      "contribution": 0.0,
-      "in_score": false
+      "contribution": 0.021,
+      "in_score": true
     },
     {
       "layer": "Navigation (GPS + IMU fusion)",
@@ -49,12 +49,12 @@
       "threshold": 9.21,
       "exceedance": -0.346,
       "phi": 0.414,
-      "weight": 0.294,
+      "weight": 0.25,
       "minor": true,
       "trip": false,
       "coordination_eligible": true,
       "individual_safe": true,
-      "contribution": 0.122,
+      "contribution": 0.104,
       "in_score": true
     },
     {
@@ -65,12 +65,12 @@
       "threshold": 1.150544,
       "exceedance": -0.598,
       "phi": 0.355,
-      "weight": 0.176,
+      "weight": 0.15,
       "minor": true,
       "trip": false,
       "coordination_eligible": true,
       "individual_safe": true,
-      "contribution": 0.063,
+      "contribution": 0.053,
       "in_score": true
     },
     {
@@ -81,12 +81,12 @@
       "threshold": 418.902901,
       "exceedance": -2.2,
       "phi": 0.1,
-      "weight": 0.294,
+      "weight": 0.25,
       "minor": false,
       "trip": false,
       "coordination_eligible": true,
       "individual_safe": true,
-      "contribution": 0.029,
+      "contribution": 0.025,
       "in_score": true
     },
     {
@@ -97,12 +97,12 @@
       "threshold": 80.0,
       "exceedance": -2.2,
       "phi": 0.1,
-      "weight": 0.235,
+      "weight": 0.2,
       "minor": false,
       "trip": false,
       "coordination_eligible": true,
       "individual_safe": true,
-      "contribution": 0.023,
+      "contribution": 0.02,
       "in_score": true
     }
   ],
@@ -110,29 +110,29 @@
   "thesis_proven": true,
   "propagation": {
     "raw_phis": {
-      "Perception": 0.1,
+      "Perception": 0.14,
       "Navigation": 0.414,
       "Communication": 0.355,
       "CAN (SW)": 0.1,
       "CAN (FPGA)": 0.1
     },
     "adjusted_phis": {
-      "adversarial-patch-detector": 0.137,
-      "ekf-gps-spoof-detector": 0.489,
+      "adversarial-patch-detector": 0.177,
+      "ekf-gps-spoof-detector": 0.495,
       "v2x-jamming-detector": 0.355,
-      "canbus-ids": 0.257,
-      "canbus-ids-fpga": 0.25
+      "canbus-ids": 0.261,
+      "canbus-ids-fpga": 0.253
     },
     "deltas": {
-      "Perception": 0.0368,
-      "Navigation": 0.0751,
+      "Perception": 0.0369,
+      "Navigation": 0.0806,
       "Communication": 0.0,
-      "CAN (SW)": 0.1572,
-      "CAN (FPGA)": 0.1503
+      "CAN (SW)": 0.1609,
+      "CAN (FPGA)": 0.1528
     },
-    "t_joint_raw": 0.237,
-    "t_joint_propagated": 0.341,
-    "delta": 0.1041
+    "t_joint_raw": 0.223,
+    "t_joint_propagated": 0.319,
+    "delta": 0.0962
   },
   "mitigation": {
     "state": "NORMAL",
@@ -143,12 +143,12 @@
     "safe_stop": false,
     "register_overrides": {},
     "trigger": {
-      "t_joint": 0.341,
+      "t_joint": 0.319,
       "level": "ALERT",
       "hard_trips": [],
       "nav_phi": 0.414,
       "comm_phi": 0.355,
-      "perc_phi": 0.1,
+      "perc_phi": 0.14,
       "can_sw_phi": 0.1,
       "can_hw_phi": 0.1
     }
@@ -217,7 +217,7 @@
       },
       "THREAT_SCORE": {
         "address": "0x28",
-        "value": 87,
+        "value": 81,
         "access": "R",
         "description": "Current T_joint (8.8 fixed point)"
       },

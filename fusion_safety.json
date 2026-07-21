@@ -1,10 +1,10 @@
 {
-  "joint_threat_score": 0.927,
+  "joint_threat_score": 0.938,
   "level": "CRITICAL",
   "global_alarm": true,
   "alarm_reason": "single-layer",
   "n_minor": 5,
-  "n_minor_eligible": 4,
+  "n_minor_eligible": 5,
   "hard_trips": [
     "Perception (camera / VLM input)",
     "Navigation (GPS + IMU fusion)",
@@ -13,6 +13,7 @@
     "In-vehicle network (CAN bus, FPGA/RTL)"
   ],
   "hard_trips_eligible": [
+    "Perception (camera / VLM input)",
     "Navigation (GPS + IMU fusion)",
     "Communication (V2X radio)",
     "In-vehicle network (CAN bus, software)",
@@ -41,16 +42,16 @@
       "repo": "adversarial-patch-detector",
       "metric": "r_win",
       "value": 294.389366,
-      "threshold": 4.0,
+      "threshold": 6.0,
       "exceedance": 6.0,
       "phi": 0.998,
-      "weight": 0.0,
+      "weight": 0.15,
       "minor": false,
       "trip": true,
-      "coordination_eligible": false,
+      "coordination_eligible": true,
       "individual_safe": true,
-      "contribution": 0.0,
-      "in_score": false
+      "contribution": 0.15,
+      "in_score": true
     },
     {
       "layer": "Navigation (GPS + IMU fusion)",
@@ -60,12 +61,12 @@
       "threshold": 9.21,
       "exceedance": 6.0,
       "phi": 0.998,
-      "weight": 0.294,
+      "weight": 0.25,
       "minor": false,
       "trip": true,
       "coordination_eligible": true,
       "individual_safe": true,
-      "contribution": 0.293,
+      "contribution": 0.249,
       "in_score": true
     },
     {
@@ -76,12 +77,12 @@
       "threshold": 1.150544,
       "exceedance": 6.0,
       "phi": 0.998,
-      "weight": 0.176,
+      "weight": 0.15,
       "minor": false,
       "trip": true,
       "coordination_eligible": true,
       "individual_safe": true,
-      "contribution": 0.176,
+      "contribution": 0.15,
       "in_score": true
     },
     {
@@ -92,12 +93,12 @@
       "threshold": 418.902901,
       "exceedance": 1.141,
       "phi": 0.758,
-      "weight": 0.294,
+      "weight": 0.25,
       "minor": false,
       "trip": true,
       "coordination_eligible": true,
       "individual_safe": true,
-      "contribution": 0.223,
+      "contribution": 0.189,
       "in_score": true
     },
     {
@@ -108,12 +109,12 @@
       "threshold": 80.0,
       "exceedance": 6.0,
       "phi": 0.998,
-      "weight": 0.235,
+      "weight": 0.2,
       "minor": false,
       "trip": true,
       "coordination_eligible": true,
       "individual_safe": true,
-      "contribution": 0.235,
+      "contribution": 0.2,
       "in_score": true
     }
   ],
@@ -139,9 +140,9 @@
       "CAN (SW)": 0.242,
       "CAN (FPGA)": 0.002
     },
-    "t_joint_raw": 0.927,
+    "t_joint_raw": 0.938,
     "t_joint_propagated": 1.0,
-    "delta": 0.0726
+    "delta": 0.0617
   },
   "mitigation": {
     "state": "FULL_FALLBACK",
@@ -150,7 +151,7 @@
       {
         "target": "vehicle",
         "action": "INITIATE_SAFE_PULL_OVER",
-        "reason": "T_joint=1.000 >= 0.45 or 4 hard trips"
+        "reason": "T_joint=1.000 >= 0.45 or 5 hard trips"
       },
       {
         "target": "can_bus",
@@ -197,6 +198,7 @@
       "t_joint": 1.0,
       "level": "CRITICAL",
       "hard_trips": [
+        "Perception (camera / VLM input)",
         "Navigation (GPS + IMU fusion)",
         "Communication (V2X radio)",
         "In-vehicle network (CAN bus, software)",

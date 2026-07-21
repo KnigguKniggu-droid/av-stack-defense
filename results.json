@@ -8,7 +8,7 @@
     "primary_metric": "clean='no patch detected', patched flags 20 windows",
     "fusion_metric": "r_win",
     "fusion_value": 294.389366,
-    "fusion_threshold": 4.0,
+    "fusion_threshold": 6.0,
     "fusion_clean_value": 3.650841,
     "fusion_clean_samples": [
       3.813524,
@@ -24,7 +24,7 @@
       3.371957,
       2.768462
     ],
-    "fusion_mild_value": 3.650841,
+    "fusion_mild_value": 3.978564,
     "mild_individual_safe": true,
     "ok": true
   },
